@@ -1,11 +1,13 @@
 import os
 import json
 import logging
+import urllib.request
+import re
 from typing import Dict, Any, List, Optional
 
 logger = logging.getLogger("finverse.shelly_gemini")
 
-SHELLY_SYSTEM_INSTRUCTION = """You are Shelly 🐢, the sharp, witty, caring mascot and financial mentor of Finverse.
+SHELLY_SYSTEM_INSTRUCTION = """You are Prof. Shelly 🐢, the sharp, witty, caring mascot and financial mentor of Finverse.
 
 YOUR CORE GUIDELINES:
 1. CRISP & CONCISE: Give quick, humanized, easy-to-understand definitions (max 2-3 short sentences or 2 bullet points). NO long paragraphs, NO textbook lectures, NO jargon clutter. Get straight to the point!
@@ -46,6 +48,41 @@ def get_gemini_api_key() -> str:
             pass
     return ""
 
+def call_gemini_rest_api(api_key: str, prompt: str, system_instruction: str) -> Optional[str]:
+    """Fallback REST API call directly to Google Generative AI REST endpoint."""
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    payload = {
+        "system_instruction": {
+            "parts": [{"text": system_instruction}]
+        },
+        "contents": [
+            {
+                "parts": [{"text": prompt}]
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.5,
+            "maxOutputTokens": 800
+        }
+    }
+    try:
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=10) as response:
+            if response.status == 200:
+                res_data = json.loads(response.read().decode("utf-8"))
+                candidates = res_data.get("candidates", [])
+                if candidates:
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    if parts:
+                        return parts[0].get("text", "")
+    except Exception as err:
+        logger.warning(f"Gemini REST API fallback error: {err}")
+    return None
 
 def generate_shelly_gemini_response(
     user_message: str,
@@ -54,12 +91,12 @@ def generate_shelly_gemini_response(
 ) -> Dict[str, Any]:
     """
     Generates a response from Gemini API with tuned system instructions for Shelly's persona.
-    If GEMINI_API_KEY is not set or network fails, falls back gracefully.
+    If GEMINI_API_KEY is not set or network fails, returns None for local engine fallback.
     """
     api_key = get_gemini_api_key()
 
     if not api_key:
-        logger.info("GEMINI_API_KEY not found in environment. Using enhanced local engine fallback.")
+        logger.info("GEMINI_API_KEY not found in environment. Using local engine fallback.")
         return None
 
     # Construct context prompt
@@ -73,20 +110,20 @@ def generate_shelly_gemini_response(
 
     full_prompt = f"{user_message.strip()}{context_str}"
 
-    # Try official google-genai SDK first, then fallback to google.generativeai
+    raw_text = ""
+
+    # 1. Try google-genai / google.generativeai SDKs first with valid model names
     try:
-        raw_text = ""
         try:
             from google import genai
             from google.genai import types
 
             client = genai.Client(api_key=api_key)
             candidate_models = [
-                'gemini-3.6-flash',
-                'gemini-flash-latest',
-                'gemini-3.5-flash',
-                'gemini-3.5-flash-lite',
-                'gemini-flash-lite-latest'
+                'gemini-1.5-flash',
+                'gemini-2.0-flash',
+                'gemini-1.5-pro',
+                'gemini-flash'
             ]
             
             for m in candidate_models:
@@ -104,7 +141,7 @@ def generate_shelly_gemini_response(
                     if raw_text:
                         break
                 except Exception as model_err:
-                    logger.warning(f"Gemini model {m} failed: {model_err}")
+                    logger.warning(f"Gemini SDK model {m} failed: {model_err}")
                     continue
         except ImportError:
             import google.generativeai as genai
@@ -118,64 +155,63 @@ def generate_shelly_gemini_response(
                 generation_config={"temperature": 0.5, "max_output_tokens": 800}
             )
             raw_text = response.text or ""
+    except Exception as e:
+        logger.warning(f"Gemini SDK invocation error: {e}")
 
-        if not raw_text:
-            return None
+    # 2. If SDK didn't return text, use direct REST API call
+    if not raw_text:
+        raw_text = call_gemini_rest_api(api_key, full_prompt, SHELLY_SYSTEM_INSTRUCTION) or ""
 
-        # Clean raw text from any thinking or draft process leftovers
-        clean_text = raw_text.strip()
-        import re
+    if not raw_text:
+        return None
 
-        # Remove leading thoughts/draft blocks if present (e.g. * *Draft... or Thinking...)
-        if clean_text.startswith("Thinking Process:") or clean_text.startswith("* *Draft"):
-            lines = clean_text.split("\n")
-            # find first line that starts with actual response text (e.g. bold or letter)
-            start_idx = 0
-            for idx, l in enumerate(lines):
-                if any(l.strip().startswith(p) for p in ["**", "Diversification", "Equity", "Lump Sum", "SWP", "SIP", "CIBIL", "SGB", "Flexi", "Investing"]):
-                    start_idx = idx
-                    break
-            if start_idx > 0:
-                clean_text = "\n".join(lines[start_idx:]).strip()
+    # Clean raw text from any thinking or draft process leftovers
+    clean_text = raw_text.strip()
 
-        # Parse actions JSON block if present
-        actions = []
+    if clean_text.startswith("Thinking Process:") or clean_text.startswith("* *Draft"):
+        lines = clean_text.split("\n")
+        start_idx = 0
+        for idx, l in enumerate(lines):
+            if any(l.strip().startswith(p) for p in ["**", "Diversification", "Equity", "Lump Sum", "SWP", "SIP", "CIBIL", "SGB", "Flexi", "Investing"]):
+                start_idx = idx
+                break
+        if start_idx > 0:
+            clean_text = "\n".join(lines[start_idx:]).strip()
 
-        if "```json_actions" in raw_text:
-            parts = clean_text.split("```json_actions")
-            clean_text = parts[0].strip()
-            action_block = parts[1].split("```")[0].strip()
+    # Parse actions JSON block if present
+    actions = []
+
+    if "```json_actions" in clean_text:
+        parts = clean_text.split("```json_actions")
+        clean_text = parts[0].strip()
+        action_block = parts[1].split("```")[0].strip()
+        try:
+            actions = json.loads(action_block)
+        except Exception:
+            pass
+    else:
+        json_matches = list(re.finditer(r"```json\s*(\[.*?\])\s*```", clean_text, re.DOTALL))
+        if json_matches:
+            last_match = json_matches[-1]
             try:
-                actions = json.loads(action_block)
+                parsed = json.loads(last_match.group(1))
+                if isinstance(parsed, list) and all(isinstance(x, dict) and "path" in x for x in parsed):
+                    actions = parsed
+                    clean_text = (clean_text[:last_match.start()] + clean_text[last_match.end():]).strip()
             except Exception:
                 pass
-        else:
-            json_matches = list(re.finditer(r"```json\s*(\[.*?\])\s*```", clean_text, re.DOTALL))
-            if json_matches:
-                last_match = json_matches[-1]
-                try:
-                    parsed = json.loads(last_match.group(1))
-                    if isinstance(parsed, list) and all(isinstance(x, dict) and "path" in x for x in parsed):
-                        actions = parsed
-                        clean_text = (clean_text[:last_match.start()] + clean_text[last_match.end():]).strip()
-                except Exception:
-                    pass
 
-        if not actions:
-            msg_lower = user_message.lower()
-            if any(k in msg_lower for k in ["lump", "sip", "portfolio", "invest", "equity", "bond", "fd"]):
-                actions.append({"label": "Explore Portfolios", "path": "/portfolios"})
-            elif any(k in msg_lower for k in ["debt", "credit card", "apr", "emi", "loan"]):
-                actions.append({"label": "Go to Debt Portfolio", "path": "/debt"})
-            elif any(k in msg_lower for k in ["calculator", "cagr", "xirr", "return"]):
-                actions.append({"label": "Open SIP Calculator", "path": "/calculator"})
+    if not actions:
+        msg_lower = user_message.lower()
+        if any(k in msg_lower for k in ["lump", "sip", "portfolio", "invest", "equity", "bond", "fd"]):
+            actions.append({"label": "Explore Portfolios", "path": "/portfolios"})
+        elif any(k in msg_lower for k in ["debt", "credit card", "apr", "emi", "loan"]):
+            actions.append({"label": "Go to Debt Portfolio", "path": "/debt"})
+        elif any(k in msg_lower for k in ["calculator", "cagr", "xirr", "return"]):
+            actions.append({"label": "Open SIP Calculator", "path": "/calculator"})
 
-        return {
-            "reply": clean_text,
-            "actions": actions,
-            "source": "gemini_ai"
-        }
-
-    except Exception as e:
-        logger.error(f"Error invoking Gemini API: {e}")
-        return None
+    return {
+        "reply": clean_text,
+        "actions": actions,
+        "source": "gemini_ai"
+    }

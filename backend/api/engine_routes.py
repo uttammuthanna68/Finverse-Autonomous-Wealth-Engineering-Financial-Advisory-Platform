@@ -546,8 +546,14 @@ def delete_scenario(
 # -------------------------------------------------------------
 
 class ShellyChatRequest(BaseModel):
-    message: str
+    message: Optional[str] = None
+    query: Optional[str] = None
+    user_name: Optional[str] = None
     current_path: Optional[str] = None
+
+    @property
+    def text(self) -> str:
+        return (self.message or self.query or "").strip()
 
 @router.get("/market-intelligence")
 def get_market_intelligence(force_refresh: bool = False):
@@ -566,15 +572,20 @@ def get_market_intelligence(force_refresh: bool = False):
 
 
 @router.post("/shelly-chat")
+@router.post("/shelly/ask")
 def shelly_chat_endpoint(req: ShellyChatRequest):
-    raw_msg = req.message.strip().lower()
+    user_text = req.text
+    if not user_text:
+        raise HTTPException(status_code=400, detail="Message or query field is required.")
+        
+    raw_msg = user_text.lower()
     
     # 1. Fetch live market snapshot for context
     market_snapshot = fetch_live_market_data(force_refresh=False)
     
     # 2. Try Gemini AI integration first if key is present
     gemini_res = generate_shelly_gemini_response(
-        user_message=req.message,
+        user_message=user_text,
         user_context=None,
         market_snapshot=market_snapshot
     )
@@ -582,6 +593,7 @@ def shelly_chat_endpoint(req: ShellyChatRequest):
         return {
             "status": "success",
             "reply": gemini_res["reply"],
+            "answer": gemini_res["reply"],
             "actions": gemini_res["actions"],
             "source": "gemini_ai"
         }
@@ -801,6 +813,7 @@ def shelly_chat_endpoint(req: ShellyChatRequest):
     return {
         "status": "success",
         "reply": reply,
+        "answer": reply,
         "actions": actions,
         "source": "local_engine"
     }

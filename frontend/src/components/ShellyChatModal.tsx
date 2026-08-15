@@ -87,38 +87,52 @@ Ask me about financial concepts (like **SWP**, **SIP**, **CAGR**, **CIBIL**, **T
     setIsTyping(true);
 
     try {
-      const response = await fetch('/api/shelly/ask', {
+      let response = await fetch('/api/engine/shelly-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          message: q,
           query: q,
           user_name: user?.full_name || 'Investor',
         }),
       });
 
       if (!response.ok) {
+        response = await fetch('/api/shelly/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: q,
+            query: q,
+            user_name: user?.full_name || 'Investor',
+          }),
+        });
+      }
+
+      if (!response.ok) {
         throw new Error('Shelly server response error');
       }
 
       const data = await response.json();
+      const replyText = data.reply || data.answer || "I'm having trouble connecting right now, but remember: compounding is king!";
       const shellyMsg: ChatMessage = {
         id: 'shelly-' + Date.now(),
         sender: 'shelly',
-        text: data.answer || "I'm having trouble connecting right now, but remember: compounding is king!",
+        text: replyText,
         actions: data.actions || [],
         source: data.source || 'gemini_ai',
       };
       setMessages((prev) => [...prev, shellyMsg]);
     } catch (err) {
       console.error('Shelly Chat error:', err);
-      // Fallback AI response
+      // Dynamic local response
       const fallbackMsg: ChatMessage = {
         id: 'shelly-err-' + Date.now(),
         sender: 'shelly',
-        text: `Great question! Here's what you need to know about "${q}":\n\nFinverse is designed to help you optimize investments, clear toxic debt (>24% APR), and project real wealth adjusted for inflation. Let's explore the tools!`,
+        text: `Here's what you need to know about **${q}**:\n\nFinverse is designed to help you optimize investments, clear toxic debt (>18% APR), and project real wealth adjusted for inflation. Explore our calculators and 6-asset portfolios below!`,
         actions: [
-          { label: 'Go to Dashboard', path: '/dashboard' },
-          { label: 'Calculators', path: '/calculator' },
+          { label: 'Explore Portfolios', path: '/portfolios' },
+          { label: 'Open Calculators', path: '/calculator' },
         ],
         source: 'rule',
       };

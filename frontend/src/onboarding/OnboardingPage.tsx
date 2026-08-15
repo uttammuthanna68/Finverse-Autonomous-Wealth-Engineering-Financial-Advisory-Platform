@@ -89,14 +89,6 @@ export const OnboardingPage: React.FC<OnboardingPageProps> = ({ onNavigate }) =>
     };
 
     loadProfileData();
-
-    if (!hasCompletedOnboarding && currentStep === 1) {
-      showShellyToast({
-        title: 'Welcome to Finverse! 🚀',
-        message: `Hi ${user?.full_name ? user.full_name.split(' ')[0] : 'there'}! Let's start your onboarding process to build your custom wealth strategy.`,
-        pose: 'happy',
-      });
-    }
   }, [isAuthenticated, user?.id, hasCompletedOnboarding]);
 
   // Persist form state locally for instant tab resumability
@@ -166,22 +158,12 @@ export const OnboardingPage: React.FC<OnboardingPageProps> = ({ onNavigate }) =>
       if (isFinalStep) {
         showShellyToast({
           title: 'Onboarding Completed! 🎉',
-          message: 'Personalized strategy generated! Pick a portfolio that suits your goals.',
+          message: 'Personalized strategy generated! Here are your customized recommendations.',
           pose: 'happy',
-        });
-      } else {
-        showShellyToast({
-          title: 'Step Saved! 💾',
-          message: `Step ${stepNumber} responses saved securely. Keep going!`,
-          pose: 'confident',
         });
       }
     } catch (err) {
-      showShellyToast({
-        title: 'Save Warning',
-        message: 'Saved locally. We will retry syncing with server.',
-        pose: 'thinking',
-      });
+      console.warn('Step save sync error:', err);
     }
   };
 
@@ -199,21 +181,11 @@ export const OnboardingPage: React.FC<OnboardingPageProps> = ({ onNavigate }) =>
     const targetBeforeEdit = currentStep >= 6 ? currentStep : 7;
     setLastStepBeforeEdit(targetBeforeEdit);
     setCurrentStep(1);
-    showShellyToast({
-      title: 'Editing Profile Parameters ✏️',
-      message: 'Modify your salary, expenses or age below. Click "Back to Recommendations" anytime to return.',
-      pose: 'explaining',
-    });
   };
 
   const handleReturnToResults = () => {
     const returnTarget = (lastStepBeforeEdit && lastStepBeforeEdit > 1) ? lastStepBeforeEdit : 7;
     setCurrentStep(returnTarget);
-    showShellyToast({
-      title: 'Welcome Back! 📈',
-      message: 'Here are your updated recommendations and financial priorities.',
-      pose: 'happy',
-    });
   };
 
   const stepsList = [
