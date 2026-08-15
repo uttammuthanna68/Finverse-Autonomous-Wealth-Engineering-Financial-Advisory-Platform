@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Header
 from pydantic import BaseModel
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, List
 from sqlalchemy.orm import Session
 
 from backend.db.session import get_db
@@ -56,9 +56,9 @@ def save_step(
         )
         db.add(new_step)
 
-    # Sync step data directly into FinancialProfile & InsuranceStatus tables if authenticated
+    # Sync step data directly into FinancialProfile, InsuranceStatus, and Debt tables if authenticated
     if user:
-        from backend.db.models import FinancialProfile, InsuranceStatus
+        from backend.db.models import FinancialProfile, InsuranceStatus, Debt
         from backend.db.encryption import encrypt_field
 
         profile = db.query(FinancialProfile).filter(FinancialProfile.user_id == user.id).first()
@@ -89,6 +89,29 @@ def save_step(
             insurance.health_insurance = bool(data["health_insurance"])
         if "term_life_insurance" in data and data["term_life_insurance"] is not None:
             insurance.term_life_insurance = bool(data["term_life_insurance"])
+
+        # Sync debts array into backend Debt table if provided in step 4 or step payload
+        if "debts" in data and isinstance(data["debts"], list):
+            # Delete existing debts for user to overwrite with latest onboarding list
+            db.query(Debt).filter(Debt.user_id == user.id).delete()
+
+            for d_item in data["debts"]:
+                if isinstance(d_item, dict):
+                    balance = float(d_item.get("balance") or 0.0)
+                    apr = float(d_item.get("apr") or 0.0)
+                    min_pay = float(d_item.get("minimum_payment") or 0.0)
+                    raw_type = str(d_item.get("debt_type") or d_item.get("debt_name") or "Personal Loan")
+                    d_name = raw_type.replace("_", " ").title()
+
+                    if balance > 0:
+                        new_debt = Debt(
+                            user_id=user.id,
+                            debt_name=d_name,
+                            apr=apr,
+                            encrypted_balance=encrypt_field(balance),
+                            encrypted_minimum_payment=encrypt_field(min_pay)
+                        )
+                        db.add(new_debt)
 
         if req.step_id in ["step_6_goals", "step_6", "recommendation", "completed"]:
             profile.has_completed_onboarding = True

@@ -122,7 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onOpe
                   </button>
 
                   {isCollapsed && (
-                    <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 hidden group-hover:block bg-main text-white text-[11px] font-bold py-1.5 px-3 rounded-xl shadow-lg whitespace-nowrap z-50 animate-fadeIn pointer-events-none">
+                    <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 hidden group-hover:block bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950 text-[11px] font-black py-1.5 px-3 rounded-xl shadow-2xl border border-slate-700 dark:border-slate-300 whitespace-nowrap z-50 animate-fadeIn pointer-events-none">
                       {item.label}
                     </div>
                   )}
@@ -133,18 +133,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onOpe
         </div>
 
         {/* Footer Actions */}
-        <div className="space-y-2 pt-3 border-t border-black/5">
+        <div className="space-y-2 pt-3 border-t border-black/5 dark:border-white/5">
           {onOpenTour && (
             <div className="relative group">
               <button
                 onClick={onOpenTour}
                 className={`w-full flex items-center ${
                   isCollapsed ? 'justify-center py-2.5' : 'space-x-3 px-3.5 py-2'
-                } rounded-xl text-xs font-extrabold text-primary bg-primary/5 hover:bg-primary/10 transition-colors border border-primary/20`}
+                } rounded-xl text-xs font-extrabold text-emerald-800 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/60 hover:bg-emerald-200 dark:hover:bg-emerald-900 transition-colors border border-emerald-400/50 dark:border-emerald-700/50`}
               >
                 <ShellyMascot pose="happy" size="sm" animateFloat={false} className="w-5 h-5 flex-shrink-0" />
                 {!isCollapsed && <span className="truncate">Ask Shelly / Tour</span>}
               </button>
+              {isCollapsed && (
+                <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 hidden group-hover:block bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950 text-[11px] font-black py-1.5 px-3 rounded-xl shadow-2xl border border-slate-700 dark:border-slate-300 whitespace-nowrap z-50 animate-fadeIn pointer-events-none">
+                  Ask Shelly / Tour
+                </div>
+              )}
             </div>
           )}
 
@@ -156,11 +161,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onOpe
               }}
               className={`w-full flex items-center ${
                 isCollapsed ? 'justify-center py-2.5' : 'space-x-3 px-3.5 py-2.5'
-              } rounded-xl text-xs font-bold text-muted hover:text-warning hover:bg-warning/10 transition-colors`}
+              } rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-warning hover:bg-warning/10 transition-colors`}
             >
               <LogOut className="w-4 h-4 flex-shrink-0" />
               {!isCollapsed && <span className="truncate">Logout</span>}
             </button>
+            {isCollapsed && (
+              <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 hidden group-hover:block bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950 text-[11px] font-black py-1.5 px-3 rounded-xl shadow-2xl border border-slate-700 dark:border-slate-300 whitespace-nowrap z-50 animate-fadeIn pointer-events-none">
+                Logout
+              </div>
+            )}
           </div>
         </div>
       </aside>

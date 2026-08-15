@@ -152,6 +152,18 @@ export const OnboardingPage: React.FC<OnboardingPageProps> = ({ onNavigate }) =>
         }),
       });
 
+      // Sync debts array directly into localStorage key used by DebtPage & Dashboard
+      if (formData.debts && Array.isArray(formData.debts)) {
+        const formattedDebts = formData.debts.map((d: any, idx: number) => ({
+          id: d.id || `debt-${Date.now()}-${idx}`,
+          debt_name: d.debt_name || (d.debt_type ? d.debt_type.replace('_', ' ').toUpperCase() : `Debt #${idx + 1}`),
+          balance: Number(d.balance) || 0,
+          apr: Number(d.apr) || 0,
+          minimum_payment: Number(d.minimum_payment) || 0,
+        }));
+        localStorage.setItem('user_active_debts_v1', JSON.stringify(formattedDebts));
+      }
+
       await refetchUser();
       window.dispatchEvent(new CustomEvent('finverse_profile_updated'));
 
