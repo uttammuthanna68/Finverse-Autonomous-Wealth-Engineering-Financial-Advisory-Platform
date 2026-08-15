@@ -47,9 +47,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(userData);
         setToken(storedToken);
 
-        const sal = userData.salary || userData.financial_profile?.salary || 0;
-        const isCompleted = userData.has_completed_onboarding || userData.financial_profile?.has_completed_onboarding || sal > 0;
-        setHasCompletedOnboarding(!!isCompleted);
+        const isCompleted = Boolean(userData.has_completed_onboarding || userData.financial_profile?.has_completed_onboarding);
+        setHasCompletedOnboarding(isCompleted);
       } else {
         localStorage.removeItem('token');
         setUser(null);

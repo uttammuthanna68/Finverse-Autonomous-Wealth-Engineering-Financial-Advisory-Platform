@@ -3,6 +3,7 @@ import { Card } from '../components/Card';
 import { fetchWithAuth } from '../api/config';
 import { OnboardingData } from './types';
 import { CheckCircle2, AlertTriangle, RefreshCw, Sparkles, Shield, TrendingUp, IndianRupee, Layers } from 'lucide-react';
+import { ShellyMascot } from '../components/ShellyMascot';
 
 interface RecommendationViewProps {
   data: OnboardingData;
@@ -105,6 +106,16 @@ export const RecommendationView: React.FC<RecommendationViewProps> = ({ data, on
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fadeIn">
+      {/* Shelly Congratulations Callout Banner */}
+      <div className="bg-card-bg p-5 rounded-card border border-primary/20 shadow-sm flex flex-col sm:flex-row items-center gap-4 animate-fadeIn">
+        <ShellyMascot pose="happy" size="md" animateFloat={true} className="flex-shrink-0" />
+        <div className="space-y-1 text-center sm:text-left">
+          <h2 className="text-base font-extrabold text-main">Onboarding Complete! 🎉 Great Job!</h2>
+          <p className="text-xs text-muted font-medium leading-relaxed">
+            Here is your custom risk allocation and emergency reserve breakdown. Click below to pick a portfolio strategy aligned with your targets!
+          </p>
+        </div>
+      </div>
       
       {/* Clean Financial Action Strategy Header Card */}
       <Card className="p-6 bg-card-bg shadow-card rounded-card border border-black/5 space-y-3">

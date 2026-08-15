@@ -76,7 +76,7 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, onUpdate, onNext, o
                   onUpdate({ age: e.target.value === '' ? '' : parseInt(e.target.value) });
                   if (errors.age) setErrors((prev) => ({ ...prev, age: '' }));
                 }}
-                placeholder="30"
+                placeholder="e.g. 28"
                 className="w-full bg-surface border border-black/10 rounded-xl pl-10 pr-4 py-2.5 text-sm font-mono tabular-nums text-main focus:outline-none focus:ring-2 focus:ring-primary/40"
               />
             </div>
@@ -103,7 +103,7 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, onUpdate, onNext, o
                   onUpdate({ monthly_salary: e.target.value === '' ? '' : parseFloat(e.target.value) });
                   if (errors.monthly_salary) setErrors((prev) => ({ ...prev, monthly_salary: '' }));
                 }}
-                placeholder="100000"
+                placeholder="e.g. 100000"
                 className="w-full bg-surface border border-black/10 rounded-xl pl-10 pr-4 py-2.5 text-sm font-mono tabular-nums text-main focus:outline-none focus:ring-2 focus:ring-primary/40"
               />
             </div>
@@ -130,7 +130,7 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, onUpdate, onNext, o
                   onUpdate({ monthly_expenses: e.target.value === '' ? '' : parseFloat(e.target.value) });
                   if (errors.monthly_expenses) setErrors((prev) => ({ ...prev, monthly_expenses: '' }));
                 }}
-                placeholder="40000"
+                placeholder="e.g. 40000"
                 className="w-full bg-surface border border-black/10 rounded-xl pl-10 pr-4 py-2.5 text-sm font-mono tabular-nums text-main focus:outline-none focus:ring-2 focus:ring-primary/40"
               />
             </div>
@@ -157,7 +157,7 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, onUpdate, onNext, o
                   onUpdate({ current_savings: e.target.value === '' ? '' : parseFloat(e.target.value) });
                   if (errors.current_savings) setErrors((prev) => ({ ...prev, current_savings: '' }));
                 }}
-                placeholder="250000"
+                placeholder="e.g. 250000"
                 className="w-full bg-surface border border-black/10 rounded-xl pl-10 pr-4 py-2.5 text-sm font-mono tabular-nums text-main focus:outline-none focus:ring-2 focus:ring-primary/40"
               />
             </div>

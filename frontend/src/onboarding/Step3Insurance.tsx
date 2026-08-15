@@ -93,7 +93,7 @@ export const Step3Insurance: React.FC<Step3Props> = ({ data, onUpdate, onNext, o
                   onUpdate({ health_insurance_cover: e.target.value === '' ? '' : parseFloat(e.target.value) });
                   if (errors.health_insurance_cover) setErrors((prev) => ({ ...prev, health_insurance_cover: '' }));
                 }}
-                placeholder="500000 (e.g. ₹5 Lakhs)"
+                placeholder="e.g. 500000 (₹5 Lakhs)"
                 className="w-full bg-card-bg border border-black/10 rounded-xl px-4 py-2.5 text-sm font-mono tabular-nums text-main focus:outline-none focus:ring-2 focus:ring-primary/40"
               />
               {errors.health_insurance_cover && (
@@ -153,7 +153,7 @@ export const Step3Insurance: React.FC<Step3Props> = ({ data, onUpdate, onNext, o
                   onUpdate({ term_life_insurance_cover: e.target.value === '' ? '' : parseFloat(e.target.value) });
                   if (errors.term_life_insurance_cover) setErrors((prev) => ({ ...prev, term_life_insurance_cover: '' }));
                 }}
-                placeholder="10000000 (e.g. ₹1 Crore)"
+                placeholder="e.g. 10000000 (₹1 Crore)"
                 className="w-full bg-card-bg border border-black/10 rounded-xl px-4 py-2.5 text-sm font-mono tabular-nums text-main focus:outline-none focus:ring-2 focus:ring-primary/40"
               />
               {errors.term_life_insurance_cover && (

@@ -40,9 +40,9 @@ export const Step4Debts: React.FC<Step4Props> = ({ data, onUpdate, onNext, onPre
     const newDebt: DebtItem = {
       id: Date.now().toString(),
       debt_type: 'credit_card',
-      balance: 0,
+      balance: '',
       apr: CATEGORY_DEFAULT_APRS.credit_card.defaultApr,
-      minimum_payment: 0,
+      minimum_payment: '',
     };
     onUpdate({ debts: [...data.debts, newDebt] });
   };
@@ -145,7 +145,7 @@ export const Step4Debts: React.FC<Step4Props> = ({ data, onUpdate, onNext, onPre
                       min={0}
                       value={debt.balance}
                       onChange={(e) => handleDebtChange(index, { balance: e.target.value === '' ? '' : parseFloat(e.target.value) })}
-                      placeholder="0"
+                      placeholder="e.g. 50000"
                       className="w-full bg-card-bg border border-black/10 rounded-xl px-3 py-2 text-xs font-mono tabular-nums text-main focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
                     {errors[`balance_${index}`] && (
@@ -172,7 +172,7 @@ export const Step4Debts: React.FC<Step4Props> = ({ data, onUpdate, onNext, onPre
                       step={0.1}
                       value={debt.apr}
                       onChange={(e) => handleDebtChange(index, { apr: e.target.value === '' ? '' : parseFloat(e.target.value) })}
-                      placeholder="14.5"
+                      placeholder="e.g. 14.5"
                       className="w-full bg-card-bg border border-black/10 rounded-xl px-3 py-2 text-xs font-mono tabular-nums text-main focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
                     {errors[`apr_${index}`] && (
@@ -188,7 +188,7 @@ export const Step4Debts: React.FC<Step4Props> = ({ data, onUpdate, onNext, onPre
                       min={0}
                       value={debt.minimum_payment}
                       onChange={(e) => handleDebtChange(index, { minimum_payment: e.target.value === '' ? '' : parseFloat(e.target.value) })}
-                      placeholder="0"
+                      placeholder="e.g. 2500"
                       className="w-full bg-card-bg border border-black/10 rounded-xl px-3 py-2 text-xs font-mono tabular-nums text-main focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
                     {errors[`min_${index}`] && (

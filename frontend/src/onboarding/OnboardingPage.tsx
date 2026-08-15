@@ -14,37 +14,30 @@ import { RecommendationView } from './RecommendationView';
 
 import { Edit3, RotateCcw } from 'lucide-react';
 import { showShellyToast } from '../components/ShellyToast';
+import { ShellyMascot } from '../components/ShellyMascot';
 
 interface OnboardingPageProps {
   onNavigate: (path: string) => void;
 }
 
 const DEFAULT_INITIAL_DATA: OnboardingData = {
-  age: 30,
-  monthly_salary: 100000,
-  monthly_expenses: 40000,
-  current_savings: 250000,
+  age: '',
+  monthly_salary: '',
+  monthly_expenses: '',
+  current_savings: '',
   employment_type: 'salaried-private',
-  dependents: 0,
-  health_insurance: true,
-  health_insurance_cover: 500000,
+  dependents: '',
+  health_insurance: false,
+  health_insurance_cover: '',
   term_life_insurance: false,
   term_life_insurance_cover: '',
   debts: [],
-  cibil_band: 'Good (700-749)',
-  goals: [
-    {
-      id: 'default_emergency',
-      name: 'Emergency Fund',
-      target_amount: 300000,
-      target_date: '2028-12-31',
-      priority: 'High',
-    },
-  ],
+  cibil_band: 'No CIBIL (New to Credit)',
+  goals: [],
 };
 
 export const OnboardingPage: React.FC<OnboardingPageProps> = ({ onNavigate }) => {
-  const { user, isAuthenticated, refetchUser } = useAuth();
+  const { user, isAuthenticated, refetchUser, hasCompletedOnboarding } = useAuth();
 
   const storageKeyStep = user ? `onboarding_current_step_${user.id}` : 'onboarding_current_step';
   const storageKeyData = user ? `onboarding_form_data_${user.id}` : 'onboarding_form_data';
@@ -96,7 +89,15 @@ export const OnboardingPage: React.FC<OnboardingPageProps> = ({ onNavigate }) =>
     };
 
     loadProfileData();
-  }, [isAuthenticated, user?.id]);
+
+    if (!hasCompletedOnboarding && currentStep === 1) {
+      showShellyToast({
+        title: 'Welcome to Finverse! 🚀',
+        message: `Hi ${user?.full_name ? user.full_name.split(' ')[0] : 'there'}! Let's start your onboarding process to build your custom wealth strategy.`,
+        pose: 'happy',
+      });
+    }
+  }, [isAuthenticated, user?.id, hasCompletedOnboarding]);
 
   // Persist form state locally for instant tab resumability
   useEffect(() => {
@@ -229,72 +230,86 @@ export const OnboardingPage: React.FC<OnboardingPageProps> = ({ onNavigate }) =>
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
       
-      {/* Top User Profile Summary Bar & Big Edit Profile / Return Button */}
-      <div className="bg-card-bg p-5 rounded-card border border-black/5 shadow-sm space-y-3">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-black/5 pb-3">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-black text-sm">
-              {user?.full_name?.charAt(0).toUpperCase() || 'U'}
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <h2 className="text-base font-extrabold text-main">{user?.full_name || 'Finverse Profile User'}</h2>
-                {user?.email && (
-                  <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/20">
-                    {user.email}
-                  </span>
-                )}
+      {/* Conditional Header: Shelly Welcome Banner for New Users, or Edit Profile Bar for Existing Users */}
+      {!hasCompletedOnboarding ? (
+        <div className="bg-card-bg p-6 rounded-card border border-primary/20 shadow-sm flex flex-col sm:flex-row items-center gap-5 animate-fadeIn">
+          <ShellyMascot pose="happy" size="md" animateFloat={true} className="flex-shrink-0" />
+          <div className="space-y-1.5 text-center sm:text-left">
+            <h2 className="text-lg font-black text-main leading-snug">
+              Welcome to Your Financial Journey, {user?.full_name ? user.full_name.split(' ')[0] : 'Partner'}! 🚀
+            </h2>
+            <p className="text-xs text-muted font-medium leading-relaxed">
+              I'm <strong>Prof. Shelly</strong> 🐢! Let's build your financial roadmap step-by-step. Enter your numbers below (leave empty if not applicable) and I'll generate a personalized action strategy for you!
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-card-bg p-5 rounded-card border border-black/5 shadow-sm space-y-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-black/5 pb-3">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-black text-sm">
+                {user?.full_name?.charAt(0).toUpperCase() || 'U'}
               </div>
-              <p className="text-xs text-muted font-medium">Active Financial Profile Parameters</p>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h2 className="text-base font-extrabold text-main">{user?.full_name || 'Finverse Profile User'}</h2>
+                  {user?.email && (
+                    <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/20">
+                      {user.email}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted font-medium">Active Financial Profile Parameters</p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
+              {showReturnButton && (
+                <button
+                  onClick={handleReturnToResults}
+                  className="bg-primary/10 hover:bg-primary/20 text-primary font-black px-4 py-2.5 rounded-2xl text-xs border border-primary/30 flex items-center space-x-1.5 transition-all shadow-xs hover:scale-105"
+                  title="Cancel editing and return directly to recommendations strategy"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>← Back to Final Strategy</span>
+                </button>
+              )}
+
+              <button
+                onClick={handleReset}
+                className="bg-primary hover:bg-primary/90 text-white font-extrabold px-5 py-2.5 rounded-2xl text-xs shadow-md flex items-center space-x-2 transition-all hover:scale-105 border border-white/20"
+              >
+                <Edit3 className="w-4 h-4" />
+                <span>Edit Profile Parameters</span>
+              </button>
             </div>
           </div>
 
-          {/* Action Buttons: BIG Edit Profile Button & Return/Undo Button */}
-          <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
-            {showReturnButton && (
-              <button
-                onClick={handleReturnToResults}
-                className="bg-primary/10 hover:bg-primary/20 text-primary font-black px-4 py-2.5 rounded-2xl text-xs border border-primary/30 flex items-center space-x-1.5 transition-all shadow-xs hover:scale-105"
-                title="Cancel editing and return directly to recommendations strategy"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>← Back to Final Strategy</span>
-              </button>
-            )}
+          {/* Filled Parameters Badges */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1">
+            <div className="bg-surface p-2.5 rounded-xl border border-black/5">
+              <span className="text-[10px] text-muted font-bold block uppercase">Age</span>
+              <span className="font-extrabold text-main font-mono">{formData.age ? `${formData.age} Yrs` : 'Not Set'}</span>
+            </div>
 
-            <button
-              onClick={handleReset}
-              className="bg-primary hover:bg-primary/90 text-white font-extrabold px-5 py-2.5 rounded-2xl text-xs shadow-md flex items-center space-x-2 transition-all hover:scale-105 border border-white/20"
-            >
-              <Edit3 className="w-4 h-4" />
-              <span>Edit Profile Parameters</span>
-            </button>
+            <div className="bg-surface p-2.5 rounded-xl border border-black/5">
+              <span className="text-[10px] text-muted font-bold block uppercase">Monthly Inflow</span>
+              <span className="font-extrabold text-main font-mono">{formData.monthly_salary ? `₹${Number(formData.monthly_salary).toLocaleString('en-IN')}` : 'Not Set'}</span>
+            </div>
+
+            <div className="bg-surface p-2.5 rounded-xl border border-black/5">
+              <span className="text-[10px] text-muted font-bold block uppercase">Monthly Outflow</span>
+              <span className="font-extrabold text-main font-mono">{formData.monthly_expenses ? `₹${Number(formData.monthly_expenses).toLocaleString('en-IN')}` : 'Not Set'}</span>
+            </div>
+
+            <div className="bg-surface p-2.5 rounded-xl border border-black/5">
+              <span className="text-[10px] text-muted font-bold block uppercase">Current Savings</span>
+              <span className="font-extrabold text-main font-mono">{formData.current_savings ? `₹${Number(formData.current_savings).toLocaleString('en-IN')}` : 'Not Set'}</span>
+            </div>
           </div>
         </div>
-
-        {/* Filled Parameters Badges */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1">
-          <div className="bg-surface p-2.5 rounded-xl border border-black/5">
-            <span className="text-[10px] text-muted font-bold block uppercase">Age</span>
-            <span className="font-extrabold text-main font-mono">{formData.age || 30} Yrs</span>
-          </div>
-
-          <div className="bg-surface p-2.5 rounded-xl border border-black/5">
-            <span className="text-[10px] text-muted font-bold block uppercase">Monthly Inflow</span>
-            <span className="font-extrabold text-main font-mono">₹{Number(formData.monthly_salary || 0).toLocaleString('en-IN')}</span>
-          </div>
-
-          <div className="bg-surface p-2.5 rounded-xl border border-black/5">
-            <span className="text-[10px] text-muted font-bold block uppercase">Monthly Outflow</span>
-            <span className="font-extrabold text-main font-mono">₹{Number(formData.monthly_expenses || 0).toLocaleString('en-IN')}</span>
-          </div>
-
-          <div className="bg-surface p-2.5 rounded-xl border border-black/5">
-            <span className="text-[10px] text-muted font-bold block uppercase">Current Savings</span>
-            <span className="font-extrabold text-main font-mono">₹{Number(formData.current_savings || 0).toLocaleString('en-IN')}</span>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Wizard Progress Bar */}
       {currentStep <= 6 && (

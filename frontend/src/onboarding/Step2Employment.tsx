@@ -110,7 +110,7 @@ export const Step2Employment: React.FC<Step2Props> = ({ data, onUpdate, onNext, 
               onUpdate({ dependents: val });
               if (errors.dependents) setErrors((prev) => ({ ...prev, dependents: '' }));
             }}
-            placeholder="0"
+            placeholder="e.g. 0"
             className="w-full max-w-xs bg-surface border border-black/10 rounded-xl px-4 py-2.5 text-sm font-mono tabular-nums text-main focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
           <p className="text-xs text-muted">Number of family members relying on your income (e.g. children, elderly parents).</p>
