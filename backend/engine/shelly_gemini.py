@@ -50,38 +50,48 @@ def get_gemini_api_key() -> str:
 
 def call_gemini_rest_api(api_key: str, prompt: str, system_instruction: str) -> Optional[str]:
     """Fallback REST API call directly to Google Generative AI REST endpoint."""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-    payload = {
-        "system_instruction": {
-            "parts": [{"text": system_instruction}]
-        },
-        "contents": [
-            {
-                "parts": [{"text": prompt}]
+    models_to_try = [
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-1.5-pro",
+        "gemini-2.5-flash"
+    ]
+    
+    # Combined prompt with system instruction to guarantee 100% API compatibility across model endpoints
+    combined_prompt = f"{system_instruction}\n\n[USER QUESTION]:\n{prompt}"
+    
+    for model_name in models_to_try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+        payload = {
+            "contents": [
+                {
+                    "parts": [{"text": combined_prompt}]
+                }
+            ],
+            "generationConfig": {
+                "temperature": 0.5,
+                "maxOutputTokens": 800
             }
-        ],
-        "generationConfig": {
-            "temperature": 0.5,
-            "maxOutputTokens": 800
         }
-    }
-    try:
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST"
-        )
-        with urllib.request.urlopen(req, timeout=10) as response:
-            if response.status == 200:
-                res_data = json.loads(response.read().decode("utf-8"))
-                candidates = res_data.get("candidates", [])
-                if candidates:
-                    parts = candidates[0].get("content", {}).get("parts", [])
-                    if parts:
-                        return parts[0].get("text", "")
-    except Exception as err:
-        logger.warning(f"Gemini REST API fallback error: {err}")
+        try:
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=12) as response:
+                if response.status == 200:
+                    res_data = json.loads(response.read().decode("utf-8"))
+                    candidates = res_data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts:
+                            text = parts[0].get("text", "")
+                            if text:
+                                return text
+        except Exception as err:
+            logger.warning(f"Gemini REST API ({model_name}) attempt error: {err}")
     return None
 
 def generate_shelly_gemini_response(
@@ -120,8 +130,8 @@ def generate_shelly_gemini_response(
 
             client = genai.Client(api_key=api_key)
             candidate_models = [
-                'gemini-1.5-flash',
                 'gemini-2.0-flash',
+                'gemini-1.5-flash',
                 'gemini-1.5-pro',
                 'gemini-flash'
             ]
@@ -203,7 +213,7 @@ def generate_shelly_gemini_response(
 
     if not actions:
         msg_lower = user_message.lower()
-        if any(k in msg_lower for k in ["lump", "sip", "portfolio", "invest", "equity", "bond", "fd"]):
+        if any(k in msg_lower for k in ["lump", "sip", "portfolio", "invest", "equity", "bond", "fd", "diversif"]):
             actions.append({"label": "Explore Portfolios", "path": "/portfolios"})
         elif any(k in msg_lower for k in ["debt", "credit card", "apr", "emi", "loan"]):
             actions.append({"label": "Go to Debt Portfolio", "path": "/debt"})

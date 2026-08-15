@@ -649,15 +649,17 @@ def shelly_chat_endpoint(req: ShellyChatRequest):
         actions.append({"label": "Explore 6-Asset Portfolios", "path": "/portfolios"})
         actions.append({"label": "Open Return Calculators", "path": "/calculator"})
 
-    # Equity & Asset Allocation
-    elif any(k in raw_msg or k in clean_msg for k in ["equity allocation", "equity", "debt allocation", "asset allocation", "allocation"]):
+    # Equity & Asset Allocation / Diversification
+    elif any(k in raw_msg or k in clean_msg for k in ["diversify", "diversification", "diversified", "equity allocation", "equity", "debt allocation", "asset allocation", "allocation"]):
         reply = (
-            "**Equity Allocation** is the percentage of your surplus invested in stocks/mutual funds vs safe debt:\n\n"
-            "• **Equity**: Grows wealth & beats inflation (~12–15% CAGR).\n"
-            "• **Debt/FD**: Keeps capital safe & liquid (~6.5–7.5% CAGR).\n"
-            "• **Finverse Rule**: Calculated using `100 - Age` adjusted by your personal Risk Capacity Score."
+            "**Diversification** is the golden rule of wealth building: never put all your eggs in one shell! 🐢\n\n"
+            "By spreading your capital across **6 distinct asset classes** (Nifty 50, Flexi Cap, Small Cap, Sovereign Gold, Short-Duration Debt, and Emergency FDs), you capture long-term compounding (~12-15% CAGR) while shielding your downside when one market sector dips.\n\n"
+            "• **Equity (Nifty/Flexi/Small Cap)**: Drives primary wealth growth.\n"
+            "• **Gold & Debt**: Acts as a shock absorber during market pullbacks.\n"
+            "• **Finverse Rule**: We auto-allocate your monthly surplus based on your age, risk capacity score, and emergency reserve status!"
         )
         actions.append({"label": "Explore 6-Asset Portfolios", "path": "/portfolios"})
+        actions.append({"label": "Open Priority Action Engine", "path": "/priority"})
         actions.append({"label": "Check Risk Profile", "path": "/priority"})
 
     # Risk Capacity
