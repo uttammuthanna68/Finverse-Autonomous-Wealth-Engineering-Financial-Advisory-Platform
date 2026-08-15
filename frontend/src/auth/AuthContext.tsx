@@ -30,6 +30,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  const safeJson = async (res: Response): Promise<any> => {
+    try {
+      const text = await res.text();
+      return text ? JSON.parse(text) : {};
+    } catch {
+      return {};
+    }
+  };
+
   const refetchUser = async () => {
     const storedToken = localStorage.getItem('token');
     if (!storedToken) {
@@ -43,12 +52,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const res = await fetchWithAuth('/api/profile/me');
       if (res.ok) {
-        const userData = await res.json();
-        setUser(userData);
-        setToken(storedToken);
+        const userData = await safeJson(res);
+        if (userData && (userData.id || userData.email)) {
+          setUser(userData);
+          setToken(storedToken);
 
-        const isCompleted = Boolean(userData.has_completed_onboarding || userData.financial_profile?.has_completed_onboarding);
-        setHasCompletedOnboarding(isCompleted);
+          const isCompleted = Boolean(userData.has_completed_onboarding || userData.financial_profile?.has_completed_onboarding);
+          setHasCompletedOnboarding(isCompleted);
+        } else {
+          setUser(null);
+          setHasCompletedOnboarding(false);
+        }
       } else {
         localStorage.removeItem('token');
         setUser(null);
@@ -76,7 +90,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .map((item: any) => {
           if (typeof item === 'string') return item;
           if (item?.msg) {
-            // Clean up pydantic messages like "value is not a valid email address: The domain name..."
             return item.msg.replace('value is not a valid email address', 'Please enter a valid email address (e.g., user@example.com)');
           }
           return JSON.stringify(item);
@@ -88,41 +101,63 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const login = async (email: string, password: string) => {
-    const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    const data = await res.json();
-    if (!res.ok) {
-      const errMsg = parseErrorMessage(data.detail, 'Login failed. Please check your credentials.');
-      throw new Error(errMsg);
+      const data = await safeJson(res);
+      if (!res.ok) {
+        const errMsg = parseErrorMessage(data.detail, 'Login failed. Please check your credentials or backend server status.');
+        throw new Error(errMsg);
+      }
+
+      if (!data.token) {
+        throw new Error('Login failed. Authentication server returned an empty or invalid response.');
+      }
+
+      localStorage.setItem('token', data.token);
+      setToken(data.token);
+      setUser(data.user);
+      await refetchUser();
+    } catch (err: any) {
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        throw new Error('Unable to connect to authentication server. Please check backend connection.');
+      }
+      throw err;
     }
-
-    localStorage.setItem('token', data.token);
-    setToken(data.token);
-    setUser(data.user);
-    await refetchUser();
   };
 
   const signup = async (email: string, password: string, fullName?: string) => {
-    const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, full_name: fullName }),
-    });
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, full_name: fullName }),
+      });
 
-    const data = await res.json();
-    if (!res.ok) {
-      const errMsg = parseErrorMessage(data.detail, 'Signup failed. Please check your details.');
-      throw new Error(errMsg);
+      const data = await safeJson(res);
+      if (!res.ok) {
+        const errMsg = parseErrorMessage(data.detail, 'Signup failed. Please check your details or backend server status.');
+        throw new Error(errMsg);
+      }
+
+      if (!data.token) {
+        throw new Error('Signup failed. Registration server returned an empty or invalid response.');
+      }
+
+      localStorage.setItem('token', data.token);
+      setToken(data.token);
+      setUser(data.user);
+      await refetchUser();
+    } catch (err: any) {
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        throw new Error('Unable to connect to authentication server. Please check backend connection.');
+      }
+      throw err;
     }
-
-    localStorage.setItem('token', data.token);
-    setToken(data.token);
-    setUser(data.user);
-    await refetchUser();
   };
 
   const logout = () => {
