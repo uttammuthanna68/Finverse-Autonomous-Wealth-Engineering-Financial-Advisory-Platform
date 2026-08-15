@@ -16,4 +16,4 @@ services:
         value: sqlite:///./finverse.db
       - key: ENVIRONMENT
         value: production
-    healthCheckPath: /api/engine/glossary
+    healthCheckPath: /health
