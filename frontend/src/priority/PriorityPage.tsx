@@ -29,22 +29,55 @@ export const PriorityPage: React.FC = () => {
   const fetchPriorityPlan = async () => {
     setIsLoading(true);
     try {
+      let localDebts: any[] = [];
+      const savedDebtsStr = localStorage.getItem('user_active_debts_v1');
+      if (savedDebtsStr) {
+        try {
+          localDebts = JSON.parse(savedDebtsStr);
+        } catch (e) {}
+      }
+
+      let sal = 100000;
+      let exp = 40000;
+      let sav = 100000;
+      let hasHealthIns = false;
+      let hasTermLifeIns = false;
+      let age = 32;
+
+      const profileRes = await fetchWithAuth('/api/profile/me');
+      if (profileRes.ok) {
+        const prof = await profileRes.json();
+        if (prof.salary) sal = prof.salary;
+        if (prof.expenses) exp = prof.expenses;
+        if (prof.savings) sav = prof.savings;
+        if (prof.health_insurance !== undefined) hasHealthIns = prof.health_insurance;
+        if (prof.term_life_insurance !== undefined) hasTermLifeIns = prof.term_life_insurance;
+        if (prof.age) age = prof.age;
+      }
+
+      const payload: any = {
+        monthly_income: sal,
+        monthly_expenses: exp,
+        current_savings: sav,
+        has_dependents: true,
+        has_health_insurance: hasHealthIns,
+        has_term_life_insurance: hasTermLifeIns,
+        user_age: age,
+      };
+
+      if (localDebts.length > 0) {
+        payload.debts = localDebts.map((d: any) => ({
+          id: d.id,
+          debt_name: d.debt_name || d.name || 'Loan',
+          balance: Number(d.balance) || 0,
+          apr: Number(d.apr) || 14.0,
+          minimum_payment: Number(d.minimum_payment) || 0,
+        }));
+      }
+
       const res = await fetchWithAuth('/api/engine/calculate-priority', {
         method: 'POST',
-        body: JSON.stringify({
-          monthly_income: 100000,
-          monthly_expenses: 40000,
-          current_savings: 80000,
-          debts: [
-            { id: 'd1', debt_name: 'Credit Card', balance: 50000, apr: 36.0, minimum_payment: 2500 },
-            { id: 'd2', debt_name: 'Car Loan', balance: 300000, apr: 9.5, minimum_payment: 7000 },
-          ],
-          credit_cards: [{ card_name: 'HDFC Regalia', balance: 35000, credit_limit: 100000 }],
-          has_dependents: true,
-          has_health_insurance: false,
-          has_term_life_insurance: false,
-          user_age: 32,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -60,6 +93,13 @@ export const PriorityPage: React.FC = () => {
 
   useEffect(() => {
     fetchPriorityPlan();
+
+    const handleProfileUpdate = () => {
+      fetchPriorityPlan();
+    };
+
+    window.addEventListener('finverse_profile_updated', handleProfileUpdate);
+    return () => window.removeEventListener('finverse_profile_updated', handleProfileUpdate);
   }, []);
 
   const hasCriticalDeficit = priorityData?.has_critical_deficit;

@@ -22,14 +22,26 @@ interface DebtItem {
 }
 
 export const DebtPage: React.FC = () => {
-  const [monthlyIncome] = useState<number>(120000);
-  const [monthlyExpenses] = useState<number>(50000);
-  const [currentSavings] = useState<number>(100000);
-  const [cibilBand] = useState<string>('Poor (<650)');
-
   const storageKeyDebts = 'user_active_debts_v1';
 
-  const [debts, setDebts] = useState<DebtItem[]>([]);
+  // Synchronously initialize debts state from localStorage to prevent initial empty-state flash
+  const [debts, setDebts] = useState<DebtItem[]>(() => {
+    const saved = localStorage.getItem(storageKeyDebts);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (err) {
+        console.error('Failed to parse saved debts:', err);
+      }
+    }
+    return [];
+  });
+
+  const [monthlyIncome, setMonthlyIncome] = useState<number>(100000);
+  const [monthlyExpenses, setMonthlyExpenses] = useState<number>(40000);
+  const [currentSavings, setCurrentSavings] = useState<number>(100000);
+  const [cibilBand, setCibilBand] = useState<string>('Good (700-749)');
+
   const [newDebtName, setNewDebtName] = useState<string>('');
   const [newDebtBalance, setNewDebtBalance] = useState<number | ''>(50000);
   const [newDebtApr, setNewDebtApr] = useState<number | ''>(18.0);
@@ -37,16 +49,41 @@ export const DebtPage: React.FC = () => {
   const [showAddForm, setShowAddForm] = useState<boolean>(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
 
-  // Load persisted debts on mount
-  useEffect(() => {
-    const saved = localStorage.getItem(storageKeyDebts);
-    if (saved) {
-      try {
-        setDebts(JSON.parse(saved));
-      } catch (err) {
-        console.error('Failed to parse saved debts:', err);
+  // Request sequence ref to prevent out-of-order async response race conditions
+  const analysisSeqRef = React.useRef<number>(0);
+
+  const loadUserProfile = async () => {
+    try {
+      const res = await fetchWithAuth('/api/profile/me');
+      if (res.ok) {
+        const prof = await res.json();
+        if (prof.salary) setMonthlyIncome(prof.salary);
+        if (prof.expenses) setMonthlyExpenses(prof.expenses);
+        if (prof.savings) setCurrentSavings(prof.savings);
+        if (prof.cibil_band) setCibilBand(prof.cibil_band);
       }
+    } catch (err) {
+      console.error('Failed to load profile in DebtPage:', err);
     }
+  };
+
+  useEffect(() => {
+    loadUserProfile();
+
+    const handleProfileUpdate = () => {
+      loadUserProfile();
+      const saved = localStorage.getItem(storageKeyDebts);
+      if (saved) {
+        try {
+          setDebts(JSON.parse(saved));
+        } catch (err) {
+          console.error('Failed to re-parse saved debts:', err);
+        }
+      }
+    };
+
+    window.addEventListener('finverse_profile_updated', handleProfileUpdate);
+    return () => window.removeEventListener('finverse_profile_updated', handleProfileUpdate);
   }, []);
 
   const saveAndNotifyDebts = (newDebts: DebtItem[]) => {
@@ -56,6 +93,7 @@ export const DebtPage: React.FC = () => {
   };
 
   const runDebtAnalysis = async () => {
+    const seq = ++analysisSeqRef.current;
     try {
       const payload = {
         monthly_income: monthlyIncome,
@@ -79,7 +117,10 @@ export const DebtPage: React.FC = () => {
 
       if (res.ok) {
         const data = await res.json();
-        setAnalysisResult(data);
+        // Ignore stale, out-of-order response
+        if (seq === analysisSeqRef.current) {
+          setAnalysisResult(data);
+        }
       }
     } catch (err) {
       console.error('Debt analysis failed:', err);
@@ -116,6 +157,7 @@ export const DebtPage: React.FC = () => {
   };
 
   const waterfall = analysisResult?.waterfall;
+  const displayDebts = waterfall?.debts && waterfall.debts.length > 0 ? waterfall.debts : debts;
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn">
@@ -222,11 +264,11 @@ export const DebtPage: React.FC = () => {
       )}
 
       {/* Classified Debts List */}
-      {debts.length > 0 && (
+      {displayDebts.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-lg font-extrabold text-main">Classified Payoff List & Estimated Finish Lines</h2>
           <div className="grid grid-cols-1 gap-4">
-            {(waterfall?.debts || debts).map((debt: any, dIdx: number) => {
+            {displayDebts.map((debt: any, dIdx: number) => {
               const isToxic = debt.classification === 'toxic' || debt.apr > 24.0;
               const bal = Number(debt.balance) || 0;
               const aprVal = Number(debt.apr) || 14.0;
