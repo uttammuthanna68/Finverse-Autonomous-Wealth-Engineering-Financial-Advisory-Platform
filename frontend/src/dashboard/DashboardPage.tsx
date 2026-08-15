@@ -25,13 +25,128 @@ import {
   Target,
   PiggyBank,
   CheckCircle2,
-  Calendar,
-  Sparkles,
   Zap,
   FileText,
+  Edit3,
+  Clock,
+  X,
+  Check,
 } from 'lucide-react';
 
 import { useAuth } from '../auth/AuthContext';
+
+interface EmergencyAdjustModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  currentSavings: number;
+  onSave: (newSavings: number, reason?: string) => void;
+}
+
+const EmergencyAdjustModal: React.FC<EmergencyAdjustModalProps> = ({
+  isOpen,
+  onClose,
+  currentSavings,
+  onSave,
+}) => {
+  const [mode, setMode] = useState<'withdraw' | 'set'>('withdraw');
+  const [amount, setAmount] = useState<number | ''>(10000);
+  const [reason, setReason] = useState<string>('Medical Expense');
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const numAmt = Number(amount) || 0;
+    let finalSavings = currentSavings;
+    if (mode === 'withdraw') {
+      finalSavings = Math.max(0, currentSavings - numAmt);
+    } else {
+      finalSavings = Math.max(0, numAmt);
+    }
+    onSave(finalSavings, reason);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+      <Card className="max-w-md w-full p-6 bg-card-bg shadow-2xl rounded-card-lg border border-black/10 relative space-y-4">
+        <button onClick={onClose} className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl hover:bg-surface">
+          <X className="w-5 h-5" />
+        </button>
+        <div className="flex items-center space-x-3 border-b border-black/10 dark:border-white/10 pb-3">
+          <ShieldAlert className="w-6 h-6 text-amber-500" />
+          <div>
+            <h3 className="text-lg font-black text-main tracking-tight">Record Emergency Fund Activity</h3>
+            <p className="text-xs text-muted font-medium">Log emergency withdrawals or adjust active buffer.</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+          <div className="flex space-x-2">
+            <button
+              type="button"
+              onClick={() => setMode('withdraw')}
+              className={`flex-1 py-2.5 rounded-xl font-extrabold border transition-all ${
+                mode === 'withdraw'
+                  ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
+                  : 'bg-surface text-main border-black/10 hover:bg-black/5'
+              }`}
+            >
+              Record Expense / Withdrawal
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('set')}
+              className={`flex-1 py-2.5 rounded-xl font-extrabold border transition-all ${
+                mode === 'set'
+                  ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
+                  : 'bg-surface text-main border-black/10 hover:bg-black/5'
+              }`}
+            >
+              Set New Balance
+            </button>
+          </div>
+
+          <div className="space-y-1">
+            <label className="font-bold text-main block uppercase tracking-wider text-[10px]">
+              {mode === 'withdraw' ? 'Amount Used (₹)' : 'New Total Emergency Buffer (₹)'}
+            </label>
+            <input
+              type="number"
+              min={0}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value === '' ? '' : parseFloat(e.target.value))}
+              placeholder="e.g. 25000"
+              className="w-full bg-surface border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono font-bold text-main focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+
+          {mode === 'withdraw' && (
+            <div className="space-y-1">
+              <label className="font-bold text-main block uppercase tracking-wider text-[10px]">Reason (Optional)</label>
+              <input
+                type="text"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="e.g. Hospital bill, car repair, job transition"
+                className="w-full bg-surface border border-black/10 rounded-xl px-3 py-2.5 text-xs font-bold text-main focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+          )}
+
+          <div className="pt-2 flex justify-end space-x-2 border-t border-black/10 dark:border-white/10">
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl font-bold bg-surface text-main border border-black/10">
+              Cancel
+            </button>
+            <button type="submit" className="px-5 py-2 rounded-xl font-extrabold bg-emerald-700 text-white shadow-xs hover:bg-emerald-800 transition-colors">
+              Update Emergency Shield
+            </button>
+          </div>
+        </form>
+      </Card>
+    </div>
+  );
+};
 
 interface DashboardPageProps {
   onNavigate: (path: string) => void;
@@ -42,9 +157,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const [profileData, setProfileData] = useState<any>(null);
   const [debtsData, setDebtsData] = useState<any>(null);
   const [isCheckinOpen, setIsCheckinOpen] = useState<boolean>(false);
+  const [isEmergencyAdjustOpen, setIsEmergencyAdjustOpen] = useState<boolean>(false);
   const [isStepUpModalOpen, setIsStepUpModalOpen] = useState<boolean>(false);
   const [isPrintableModalOpen, setIsPrintableModalOpen] = useState<boolean>(false);
-  const [daysSinceCheckin, setDaysSinceCheckin] = useState<number>(0);
   const [stepUpRate, setStepUpRate] = useState<number>(() => {
     const saved = localStorage.getItem('finverse_annual_stepup_rate');
     return saved ? parseFloat(saved) || 10 : 10;
@@ -58,26 +173,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     try {
       let sal = 100000;
       let exp = 40000;
-      let sav = 20000;
+      let sav = 100000;
 
-      const profRes = await fetchWithAuth('/api/profile/me');
-      if (profRes.ok) {
-        const prof = await profRes.json();
-        setProfileData(prof);
-        if (prof.salary) sal = prof.salary;
-        if (prof.expenses) exp = prof.expenses;
-        if (prof.savings !== undefined) sav = prof.savings;
-      }
-
-      // Load local debts array
-      let localDebts: any[] = [];
-      const savedDebtsStr = localStorage.getItem(storageKeyDebts);
-      if (savedDebtsStr) {
-        try {
-          localDebts = JSON.parse(savedDebtsStr);
-        } catch (e) {
-          console.error('Error parsing local debts:', e);
+      const profileRes = await fetchWithAuth('/api/profile/me');
+      if (profileRes.ok) {
+        const prof = await profileRes.json();
+        const savedOverride = localStorage.getItem('finverse_profile_savings');
+        if (savedOverride) {
+          prof.savings = parseFloat(savedOverride) || 0;
         }
+
+        setProfileData(prof);
+        sal = prof.salary || 100000;
+        exp = prof.expenses || 40000;
+        sav = prof.savings || 100000;
       }
 
       const debtRes = await fetchWithAuth('/api/engine/analyze-debts', {
@@ -86,12 +195,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           monthly_income: sal,
           monthly_expenses: exp,
           current_savings: sav,
-          debts: localDebts,
+          risk_score: 50.0,
         }),
       });
+
       if (debtRes.ok) {
-        const debtJson = await debtRes.json();
-        setDebtsData(debtJson);
+        const dData = await debtRes.json();
+        setDebtsData(dData);
       }
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
@@ -100,7 +210,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
 
   useEffect(() => {
     loadDashboardData();
-
     const handleProfileUpdate = () => {
       loadDashboardData();
     };
@@ -115,13 +224,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     if (saved) {
       const lastTs = parseInt(saved, 10);
       const diffDays = Math.floor((Date.now() - lastTs) / (1000 * 60 * 60 * 24));
-      setDaysSinceCheckin(diffDays);
       if (diffDays >= 30) {
         setIsCheckinOpen(true);
       }
     } else {
       localStorage.setItem(storageKeyCheckin, Date.now().toString());
-      setDaysSinceCheckin(0);
     }
   }, [user?.id, storageKeyCheckin]);
 
@@ -140,7 +247,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const totalLocalDebtBalance = localDebtsList.reduce((acc, d) => acc + (Number(d.balance) || 0), 0);
   const totalLocalDebtEmi = localDebtsList.reduce((acc, d) => acc + (Number(d.minimum_payment) || 0), 0);
 
-  // Engine or Local Fallback Debt Calculations
+  // Combined Debts Array (Local + Engine)
+  const activeDebtsList: any[] = localDebtsList.length > 0
+    ? localDebtsList
+    : (debtsData?.waterfall?.debts || []);
+
   const totalDebtBalance = totalLocalDebtBalance > 0
     ? totalLocalDebtBalance
     : (debtsData?.waterfall?.debts?.reduce((acc: number, d: any) => acc + (d.balance || 0), 0) || 0);
@@ -148,8 +259,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const totalDebtMonthlyEmi = totalLocalDebtEmi > 0
     ? totalLocalDebtEmi
     : (debtsData?.waterfall?.debts?.reduce((acc: number, d: any) => acc + (d.minimum_payment || 0), 0) || 0);
-
-  const hasToxicDebt = totalDebtBalance > 0;
 
   // Emergency Fund Calculations
   const emergencyTargetMonths = debtsData?.waterfall?.emergency_fund_target_months || 6;
@@ -202,61 +311,69 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     { month: 'Month 12', invested: baselineAccumulated + monthlyPortfolioSip * 12, value: baselineAccumulated + monthlyPortfolioSip * 12.25 },
   ];
 
-  // 1-Year Milestone Execution Roadmap Data with Calendar Dates
-  const roadmapMilestones = [
-    {
-      date: '1st Sep 2026',
-      period: 'Month 1 Kickoff',
-      title: totalDebtBalance > 0 ? 'Toxic Debt Slash Initiated' : emergencyProgressPct < 100 ? 'Reserve Deposit & Portfolio SIP Launch' : 'Full Growth Portfolio Acceleration',
-      desc: totalDebtBalance > 0
-        ? `Allocate ₹${monthlyDebtPayment.toLocaleString('en-IN')}/mo to clear high-interest credit card debt.`
-        : emergencyProgressPct < 100
-        ? `Deposit ₹${monthlyEmergencyDeposit.toLocaleString('en-IN')}/mo into your Emergency Shield & ₹${monthlyPortfolioSip.toLocaleString('en-IN')}/mo into your Growth Portfolio SIP.`
-        : `Invest full ₹${monthlyPortfolioSip.toLocaleString('en-IN')}/mo surplus into your growth asset mix.`,
-      motivation: "🐢 \"The longest journey begins with a single step! Setting auto-pay today guarantees smooth compounding ahead.\"",
-      status: 'Active Kickoff',
-    },
-    {
-      date: '1st Dec 2026',
-      period: 'Month 3 Checkpoint',
-      title: '3-Month Buffer & SIP Growth Milestone',
-      desc: `Projected Emergency Shield buffer reaches ₹${(savings + monthlyEmergencyDeposit * 3).toLocaleString('en-IN')}. Portfolio total reaches ₹${(baselineAccumulated + monthlyPortfolioSip * 3.03).toLocaleString('en-IN')}.`,
-      motivation: "📈 \"3 months of consistent discipline! Look at your reserve growing steady and secure.\"",
-      status: 'Upcoming',
-    },
-    {
-      date: '1st Mar 2027',
-      period: 'Month 6 Checkpoint',
-      title: '6-Month Mid-Year Wealth Horizon',
-      desc: `Projected Emergency Shield reaches ₹${(savings + monthlyEmergencyDeposit * 6).toLocaleString('en-IN')}. Portfolio total reaches ₹${(baselineAccumulated + monthlyPortfolioSip * 6.08).toLocaleString('en-IN')}.`,
-      motivation: "🛡️ \"Halfway through Year 1! Your financial shell is getting stronger every single month.\"",
-      status: 'Upcoming',
-    },
-    {
-      date: '1st Jun 2027',
-      period: 'Month 9 Checkpoint',
-      title: '9-Month Asset Shield Milestone',
-      desc: `Projected Emergency Shield reaches ₹${(savings + monthlyEmergencyDeposit * 9).toLocaleString('en-IN')}. Portfolio total reaches ₹${(baselineAccumulated + monthlyPortfolioSip * 9.15).toLocaleString('en-IN')}.`,
-      motivation: "⭐ \"Almost at the 1-year mark! Keep your eyes on long-term financial freedom.\"",
-      status: 'Upcoming',
-    },
-    {
-      date: '1st Sep 2027',
-      period: '1-Year Milestone Target',
-      title: '1-Year Annual Financial Target',
-      desc: `Projected 1-Year Wealth Value reaches ₹${(baselineAccumulated + monthlyPortfolioSip * 12.25).toLocaleString('en-IN')}. Rebalance portfolio asset mix based on annual salary review!`,
-      motivation: "🎉 \"Congratulations on completing 1 full year! Rebalance your portfolio and celebrate your growth!\"",
-      status: 'Target Horizon',
-    },
-  ];
+  // Handle Emergency Fund Manual Adjust / Expense Record
+  const handleSaveEmergencyAdjust = (newSavingsVal: number, reason?: string) => {
+    localStorage.setItem('finverse_profile_savings', newSavingsVal.toString());
+    setProfileData((prev: any) => ({ ...prev, savings: newSavingsVal }));
 
-  const handleSaveCheckin = (_summary: any) => {
-    localStorage.setItem(storageKeyCheckin, Date.now().toString());
-    setDaysSinceCheckin(0);
+    fetchWithAuth('/api/profile/me', {
+      method: 'PUT',
+      body: JSON.stringify({ savings: newSavingsVal }),
+    }).catch(() => {});
+
+    window.dispatchEvent(new CustomEvent('finverse_profile_updated'));
+
     showShellyToast({
-      title: 'Progress Verified! 🗓️',
-      message: 'Awesome work! Your monthly execution streak has been updated.',
-      pose: 'happy',
+      title: 'Emergency Buffer Updated 🛡️',
+      message: reason
+        ? `Recorded emergency use (${reason}). Priority Waterfall updated to rebuild your shield!`
+        : 'Emergency reserve buffer updated successfully.',
+      pose: 'thinking',
+    });
+  };
+
+  // Adaptive Monthly Checkin Progress Handler
+  const handleSaveCheckin = (summary: any) => {
+    if (summary.paidDebt && localDebtsList.length > 0) {
+      const updatedDebts = localDebtsList.map((d: any) => {
+        const emi = Number(d.minimum_payment) || 2500;
+        const currentBal = Number(d.balance) || 0;
+        const newBal = Math.max(0, currentBal - emi);
+        return { ...d, balance: newBal };
+      });
+      localStorage.setItem(storageKeyDebts, JSON.stringify(updatedDebts));
+    } else if (!summary.paidDebt && localDebtsList.length > 0) {
+      // Accrue 1 month interest on missed debt payments
+      const updatedDebts = localDebtsList.map((d: any) => {
+        const apr = Number(d.apr) || 18.0;
+        const currentBal = Number(d.balance) || 0;
+        const accruedInterest = (currentBal * (apr / 100)) / 12;
+        const newBal = Math.round(currentBal + accruedInterest);
+        return { ...d, balance: newBal };
+      });
+      localStorage.setItem(storageKeyDebts, JSON.stringify(updatedDebts));
+    }
+
+    if (summary.depositedEmergency) {
+      const currentSavingsVal = profileData?.savings || savings;
+      const updatedSavings = currentSavingsVal + monthlyEmergencyDeposit;
+      localStorage.setItem('finverse_profile_savings', updatedSavings.toString());
+      fetchWithAuth('/api/profile/me', {
+        method: 'PUT',
+        body: JSON.stringify({ savings: updatedSavings }),
+      }).catch(() => {});
+    }
+
+    localStorage.setItem(storageKeyCheckin, Date.now().toString());
+    setIsCheckinOpen(false);
+    window.dispatchEvent(new CustomEvent('finverse_profile_updated'));
+
+    showShellyToast({
+      title: 'Monthly Progress Saved! 🗓️',
+      message: summary.paidDebt
+        ? 'Great execution! Your debt balance decreased and progress was updated.'
+        : 'Payment missed noted. Accrued monthly interest was added and your priority plan was adjusted.',
+      pose: summary.paidDebt ? 'happy' : 'thinking',
     });
   };
 
@@ -278,168 +395,111 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           <button
             onClick={() => setIsPrintableModalOpen(true)}
             className="bg-surface hover:bg-surface/80 text-main font-extrabold px-3.5 py-2 rounded-xl text-xs flex items-center space-x-1.5 transition-colors border border-black/10 shadow-xs"
+            title="Download PDF Financial Report"
           >
             <FileText className="w-4 h-4 text-primary" />
-            <span>CA Audit Report</span>
+            <span>PDF Report</span>
           </button>
 
           <button
             onClick={() => setIsStepUpModalOpen(true)}
-            className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 font-extrabold px-4 py-2 rounded-xl text-xs flex items-center space-x-1.5 transition-colors border border-emerald-500/30 shadow-xs"
-          >
-            <TrendingUp className="w-4 h-4 text-emerald-600" />
-            <span>Annual Step-Up ({stepUpRate}%)</span>
-          </button>
-
-          <button
-            onClick={() => setIsCheckinOpen(true)}
             className="bg-primary/10 hover:bg-primary/20 text-primary font-extrabold px-4 py-2 rounded-xl text-xs flex items-center space-x-1.5 transition-colors border border-primary/20"
           >
-            <Calendar className="w-4 h-4" />
-            <span>30-Day Check-in ({daysSinceCheckin}d ago)</span>
+            <Zap className="w-4 h-4 text-primary" />
+            <span>Step-Up SIP ({stepUpRate}%/yr)</span>
           </button>
-
-          {!hasProfile && (
-            <button
-              onClick={() => onNavigate('/onboarding')}
-              className="bg-primary hover:bg-primary/90 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-2 shadow-sm"
-            >
-              <span>Complete Financial Onboarding</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          )}
         </div>
       </div>
-      {/* Strategic Execution Advisor Card */}
-      <Card className="p-6 sm:p-7 bg-card-bg shadow-floating rounded-card border border-primary/20 dark:border-emerald-500/30 space-y-4 glass-reflection">
-        <div className="flex flex-col sm:flex-row items-center gap-6">
-          <ShellyMascot
-            pose={hasToxicDebt ? 'panicked' : emergencyProgressPct >= 100 ? 'happy' : 'explaining'}
-            size="md"
-            animateFloat={true}
-            className="flex-shrink-0"
-          />
 
-          <div className="space-y-2.5 text-center sm:text-left flex-1">
-            <div className="text-xs font-mono font-extrabold text-primary dark:text-emerald-400 uppercase tracking-wider flex items-center space-x-1.5 justify-center sm:justify-start">
-              <Sparkles className="w-4 h-4" />
-              <span>Prof. Shelly's Strategic Guidance</span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-black text-main tracking-tight">
-              {hasToxicDebt
-                ? 'High-Interest Debt Payoff Is Priority #1'
-                : emergencyProgressPct < 100
-                ? `Allocate ₹${monthlyEmergencyDeposit.toLocaleString('en-IN')} to Emergency Reserve & ₹${monthlyPortfolioSip.toLocaleString('en-IN')} to Portfolio Investing`
-                : 'Accelerating Portfolio Wealth Compounding'}
-            </h2>
-            <p className="text-sm sm:text-base font-semibold text-main leading-relaxed">
-              {hasToxicDebt ? (
-                <span className="text-warning">
-                  "Woah there! High-interest debt detected! Out of your monthly surplus of <strong>₹{monthlySurplus.toLocaleString('en-IN')}</strong>, put <strong>₹{monthlyDebtPayment.toLocaleString('en-IN')}/mo</strong> toward clearing toxic dues first before market investing!"
-                </span>
-              ) : emergencyProgressPct < 100 ? (
-                <span>
-                  "Because you have zero high-interest debt, let's divide your <strong>₹{monthlySurplus.toLocaleString('en-IN')}</strong> monthly surplus: put <strong>₹{monthlyEmergencyDeposit.toLocaleString('en-IN')}/mo</strong> into your Emergency Reserve (currently {emergencyProgressPct}% complete) and <strong>₹{monthlyPortfolioSip.toLocaleString('en-IN')}/mo</strong> directly into Portfolio Investing starting <strong>1st September 2026</strong>!"
-                </span>
-              ) : (
-                <span>
-                  "Fantastic job! Your 6-month emergency reserve is 100% secured! Your full monthly surplus of <strong>₹{monthlySurplus.toLocaleString('en-IN')}/mo</strong> is actively building your wealth portfolio!"
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* 1-YEAR FINANCIAL EXECUTION ROADMAP */}
-      <Card className="p-6 sm:p-8 bg-card-bg shadow-card rounded-card border border-black/5 space-y-6">
-        <div className="flex items-center justify-between border-b border-black/5 pb-3">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
-              <Zap className="w-4.5 h-4.5" />
-            </div>
+      {/* Profile Setup Warning Banner */}
+      {!hasProfile && (
+        <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <div className="flex items-center space-x-3 text-amber-800 dark:text-amber-300">
+            <ShellyMascot pose="thinking" size="sm" animateFloat={false} />
             <div>
-              <h2 className="text-lg font-black text-main tracking-tight">1-Year Financial Execution Roadmap</h2>
-              <span className="text-xs text-muted font-medium">Step-by-step milestone plan prioritized by cash flow mathematics</span>
+              <strong className="font-extrabold block">Onboarding Not Completed Yet</strong>
+              <span>Complete onboarding to customize your monthly surplus, active debts, and target goals.</span>
             </div>
           </div>
 
           <button
-            onClick={() => onNavigate('/portfolios')}
-            className="text-xs font-extrabold text-primary hover:underline flex items-center space-x-1"
+            onClick={() => onNavigate('/onboarding')}
+            className="bg-amber-600 hover:bg-amber-700 text-white font-extrabold px-4 py-2 rounded-xl text-xs flex items-center space-x-1 whitespace-nowrap shadow-xs"
           >
-            <span>View Portfolios →</span>
+            <span>Start Onboarding</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
+      )}
 
-        {/* 5-Stage Scrollable Dated Milestone Timeline */}
-        <div className="flex overflow-x-auto space-x-4 pb-4 pt-1 scrollbar-thin">
-          {roadmapMilestones.map((m, idx) => (
-            <div
-              key={idx}
-              className="min-w-[280px] sm:min-w-[320px] max-w-[340px] bg-surface p-5 rounded-2xl border border-black/10 space-y-3 flex-shrink-0 flex flex-col justify-between shadow-xs"
-            >
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-[11px] font-mono font-extrabold uppercase tracking-wider text-muted border-b border-black/5 pb-2">
-                  <span className="text-primary bg-primary/10 px-2.5 py-0.5 rounded-full border border-primary/20">
-                    📅 {m.date}
-                  </span>
-                  <span className="text-muted">{m.period}</span>
-                </div>
+      {/* Overview Metric Highlights */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="p-5 bg-card-bg shadow-card rounded-card border border-black/5 space-y-1">
+          <span className="text-[11px] font-bold text-muted uppercase tracking-wider block">Monthly Net Inflow</span>
+          <div className="text-2xl font-black text-main font-mono">₹{salary.toLocaleString('en-IN')}</div>
+          <span className="text-[11px] text-muted font-medium">Verified Salary / Self-Employed</span>
+        </Card>
 
-                <h3 className="text-base font-black text-main leading-tight pt-1">{m.title}</h3>
-                <p className="text-xs text-muted leading-relaxed font-medium">{m.desc}</p>
-              </div>
+        <Card className="p-5 bg-card-bg shadow-card rounded-card border border-black/5 space-y-1">
+          <span className="text-[11px] font-bold text-muted uppercase tracking-wider block">Monthly Expenses</span>
+          <div className="text-2xl font-black text-main font-mono">₹{expenses.toLocaleString('en-IN')}</div>
+          <span className="text-[11px] text-muted font-medium">Essential & Fixed Living Outflow</span>
+        </Card>
 
-              <div className="bg-card-bg p-3 rounded-xl border border-black/5 text-[11px] font-semibold text-main italic">
-                {m.motivation}
-              </div>
+        <Card className="p-5 bg-card-bg shadow-card rounded-card border border-black/5 space-y-1">
+          <span className="text-[11px] font-bold text-muted uppercase tracking-wider block">Available Net Surplus</span>
+          <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400 font-mono">₹{monthlySurplus.toLocaleString('en-IN')}/mo</div>
+          <span className="text-[11px] text-muted font-medium">Unallocated Monthly Cash Flow</span>
+        </Card>
+
+        <Card className="p-5 bg-card-bg shadow-card rounded-card border border-black/5 space-y-1">
+          <span className="text-[11px] font-bold text-muted uppercase tracking-wider block">Total Liquid Buffer</span>
+          <div className="text-2xl font-black text-main font-mono">₹{savings.toLocaleString('en-IN')}</div>
+          <span className="text-[11px] text-muted font-medium">Emergency Reserves & Liquid FDs</span>
+        </Card>
+      </div>
+
+      {/* Monthly Surplus Allocation Waterfall Breakdown */}
+      <div className="bg-surface p-5 rounded-2xl border border-black/5 space-y-3">
+        <span className="text-xs font-bold text-main uppercase tracking-wider block">
+          Monthly Inflow Allocation Breakdown (Surplus: ₹{monthlySurplus.toLocaleString('en-IN')}/mo)
+        </span>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="bg-card-bg p-3.5 rounded-xl border border-black/5 space-y-1">
+            <div className="flex justify-between items-center text-[10px] font-bold uppercase text-muted">
+              <span>Priority 1: Debt Payoff</span>
+              {totalDebtBalance > 0 && <span className="text-warning font-extrabold">Active</span>}
             </div>
-          ))}
-        </div>
-
-        {/* Monthly Surplus Allocation Waterfall Breakdown */}
-        <div className="bg-surface p-5 rounded-2xl border border-black/5 space-y-3">
-          <span className="text-xs font-bold text-main uppercase tracking-wider block">
-            Monthly Inflow Allocation Breakdown (Surplus: ₹{monthlySurplus.toLocaleString('en-IN')}/mo)
-          </span>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-            <div className="bg-card-bg p-3.5 rounded-xl border border-black/5 space-y-1">
-              <div className="flex justify-between items-center text-[10px] font-bold uppercase text-muted">
-                <span>Priority 1: Debt Payoff</span>
-                {totalDebtBalance > 0 && <span className="text-warning">Active</span>}
-              </div>
-              <div className="text-base font-black text-main font-mono">
-                ₹{monthlyDebtPayment.toLocaleString('en-IN')}/mo
-              </div>
-              <p className="text-[11px] text-muted">Accelerated credit card / loan payoff</p>
+            <div className="text-base font-black text-main font-mono">
+              ₹{monthlyDebtPayment.toLocaleString('en-IN')}/mo
             </div>
+            <p className="text-[11px] text-muted">Accelerated credit card / loan payoff</p>
+          </div>
 
-            <div className="bg-card-bg p-3.5 rounded-xl border border-black/5 space-y-1">
-              <div className="flex justify-between items-center text-[10px] font-bold uppercase text-muted">
-                <span>Priority 2: Emergency Shield</span>
-                {emergencyProgressPct < 100 && <span className="text-primary">Active</span>}
-              </div>
-              <div className="text-base font-black text-main font-mono">
-                ₹{monthlyEmergencyDeposit.toLocaleString('en-IN')}/mo
-              </div>
-              <p className="text-[11px] text-muted">Liquid emergency reserve fund</p>
+          <div className="bg-card-bg p-3.5 rounded-xl border border-black/5 space-y-1">
+            <div className="flex justify-between items-center text-[10px] font-bold uppercase text-muted">
+              <span>Priority 2: Emergency Shield</span>
+              {emergencyProgressPct < 100 && <span className="text-primary font-extrabold">Active</span>}
             </div>
+            <div className="text-base font-black text-main font-mono">
+              ₹{monthlyEmergencyDeposit.toLocaleString('en-IN')}/mo
+            </div>
+            <p className="text-[11px] text-muted">Liquid emergency reserve fund</p>
+          </div>
 
-            <div className="bg-card-bg p-3.5 rounded-xl border border-black/5 space-y-1">
-              <div className="flex justify-between items-center text-[10px] font-bold uppercase text-muted">
-                <span>Priority 3: Portfolio SIP</span>
-                <span className="text-success">Wealth SIP</span>
-              </div>
-              <div className="text-base font-black text-main font-mono">
-                ₹{monthlyPortfolioSip.toLocaleString('en-IN')}/mo
-              </div>
-              <p className="text-[11px] text-muted">Compounding investment asset mix</p>
+          <div className="bg-card-bg p-3.5 rounded-xl border border-black/5 space-y-1">
+            <div className="flex justify-between items-center text-[10px] font-bold uppercase text-muted">
+              <span>Priority 3: Goals & Portfolio SIP</span>
+              <span className="text-emerald-700 dark:text-emerald-400 font-extrabold">Wealth SIP</span>
             </div>
+            <div className="text-base font-black text-main font-mono">
+              ₹{monthlyPortfolioSip.toLocaleString('en-IN')}/mo
+            </div>
+            <p className="text-[11px] text-muted">Goal SIP & compounding asset mix</p>
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* Main 4-Card Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -451,7 +511,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
               <PiggyBank className="w-5 h-5 text-primary" />
               <h2 className="text-base font-extrabold text-main">Savings & <GlossaryTerm term="emergency fund">Emergency Reserve</GlossaryTerm></h2>
             </div>
-            <span className="text-xs font-mono font-extrabold text-primary">{emergencyProgressPct}% Met</span>
+            <div className="flex items-center space-x-2">
+              <span className="text-xs font-mono font-extrabold text-primary">{emergencyProgressPct}% Met</span>
+              <button
+                onClick={() => setIsEmergencyAdjustOpen(true)}
+                className="bg-primary/10 hover:bg-primary/20 text-primary p-1.5 rounded-lg text-xs font-bold transition-colors flex items-center space-x-1 border border-primary/20"
+                title="Record Emergency Expense / Adjust Buffer"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Use / Adjust Buffer</span>
+              </button>
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -470,13 +540,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
 
             <div className="text-xs font-semibold text-main pt-1">
               {emergencyRemaining > 0 ? (
-                <span className="text-warning">
-                  Remaining to fulfill: <strong className="font-mono">₹{emergencyRemaining.toLocaleString('en-IN')}</strong>
+                <span className="text-warning flex items-center justify-between">
+                  <span>Remaining to fulfill: <strong className="font-mono">₹{emergencyRemaining.toLocaleString('en-IN')}</strong></span>
+                  <span className="text-[10px] font-bold text-muted">Priority #2</span>
                 </span>
               ) : (
-                <span className="text-primary flex items-center space-x-1">
+                <span className="text-primary flex items-center space-x-1 font-bold">
                   <CheckCircle2 className="w-4 h-4 text-primary inline" />
-                  <span>Full emergency fund buffer secured!</span>
+                  <span>Full 6-month emergency fund buffer secured!</span>
                 </span>
               )}
             </div>
@@ -490,7 +561,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
               <TrendingUp className="w-5 h-5 text-primary" />
               <h2 className="text-base font-extrabold text-main">Investments & Baseline Growth</h2>
             </div>
-            <span className="text-xs font-mono text-muted">Monthly SIP: ₹{monthlyPortfolioSip.toLocaleString('en-IN')}</span>
+            <span className="text-xs font-mono text-muted font-bold">Monthly SIP: ₹{monthlyPortfolioSip.toLocaleString('en-IN')}</span>
           </div>
 
           <div className="h-44 w-full">
@@ -506,12 +577,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           </div>
         </Card>
 
-        {/* Card 3: Debt & Credit Card Payoff Status */}
+        {/* Card 3: Debt & Credit Card Payoff Status with Per-Debt Item Countdown */}
         <Card className="p-6 bg-card-bg shadow-card rounded-card border border-black/5 space-y-4">
           <div className="flex items-center justify-between border-b border-black/5 pb-3">
             <div className="flex items-center space-x-2">
               <CreditCard className="w-5 h-5 text-primary" />
-              <h2 className="text-base font-extrabold text-main">Credit Card & Debt Summary</h2>
+              <h2 className="text-base font-extrabold text-main">Credit Card & Debt Finish Line</h2>
             </div>
             <span className="text-xs font-mono font-extrabold text-main">
               Total: ₹{totalDebtBalance.toLocaleString('en-IN')}
@@ -520,7 +591,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
 
           {totalDebtBalance === 0 ? (
             <div className="bg-surface p-4 rounded-2xl border border-black/5 text-center text-xs text-muted font-bold space-y-2">
-              <div>🎉 Zero active debts reported! All credit balances cleared.</div>
+              <div className="text-emerald-700 dark:text-emerald-400 font-black text-sm">🎉 Congratulations! All active loans and credit cards are fully paid off!</div>
+              <p className="text-[11px] text-muted font-medium">You are 100% debt-free. Your full monthly surplus is unlocked for wealth compounding.</p>
               <button
                 onClick={() => onNavigate('/creditcard/rewards')}
                 className="text-xs font-extrabold text-primary hover:underline block mx-auto pt-1"
@@ -529,18 +601,49 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
               </button>
             </div>
           ) : (
-            <div className="space-y-3 text-xs">
-              <div className="flex justify-between items-center bg-surface p-3 rounded-xl border border-black/5">
-                <span className="font-semibold text-main">Outstanding Payoff Balance</span>
-                <span className="font-mono font-extrabold text-main">₹{totalDebtBalance.toLocaleString('en-IN')}</span>
-              </div>
+            <div className="space-y-3 text-xs max-h-[220px] overflow-y-auto pr-1">
+              {activeDebtsList.map((debt: any, dIdx: number) => {
+                const bal = Number(debt.balance) || 0;
+                const aprVal = Number(debt.apr) || 14.0;
+                const emiVal = Number(debt.minimum_payment) || 2500;
+                const dName = debt.debt_name || (debt.debt_type ? debt.debt_type.replace('_', ' ').toUpperCase() : `Loan #${dIdx + 1}`);
 
-              {hasToxicDebt && (
-                <div className="bg-warning/10 border border-warning/30 text-warning p-3 rounded-xl flex items-start space-x-2 text-xs font-semibold">
-                  <ShieldAlert className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  <span>High-interest <GlossaryTerm term="toxic debt">toxic debt</GlossaryTerm> (&gt;18% APR) detected. Prioritize clearing credit card balance before investing.</span>
-                </div>
-              )}
+                let payoffMonths = 0;
+                if (bal > 0) {
+                  const r = (aprVal / 100.0) / 12.0;
+                  if (r <= 0) payoffMonths = Math.ceil(bal / emiVal);
+                  else if (emiVal <= bal * r) payoffMonths = 999;
+                  else payoffMonths = Math.ceil(-Math.log(1.0 - (r * bal) / emiVal) / Math.log(1.0 + r));
+                }
+
+                return (
+                  <div key={dIdx} className="bg-surface p-3.5 rounded-xl border border-black/5 space-y-1.5">
+                    <div className="flex justify-between items-center font-bold">
+                      <span className="text-main font-black text-sm">{dName}</span>
+                      <span className="font-mono text-main font-extrabold">₹{bal.toLocaleString('en-IN')}</span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-[11px] text-muted font-medium">
+                      <span>Interest Rate: {aprVal}% APR</span>
+                      <span>EMI: ₹{emiVal.toLocaleString('en-IN')}/mo</span>
+                    </div>
+
+                    <div className="pt-1 flex items-center justify-between text-[11px]">
+                      {bal <= 0 ? (
+                        <span className="text-emerald-700 dark:text-emerald-400 font-extrabold flex items-center space-x-1">
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>🎉 Congratulations! Loan Fully Paid Off!</span>
+                        </span>
+                      ) : (
+                        <span className="text-amber-800 dark:text-amber-300 font-extrabold flex items-center space-x-1 bg-amber-100 dark:bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-300/40">
+                          <Clock className="w-3 h-3 text-amber-600" />
+                          <span>Payoff in ~{payoffMonths > 360 ? '30+ yrs' : `${payoffMonths} months`} at ₹{emiVal.toLocaleString('en-IN')}/mo</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </Card>
@@ -585,6 +688,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                 const progressPct = Math.min(100, Math.round((currSaved / Math.max(1, target)) * 100));
                 const priority = g.priority || (isEmergency ? 'High' : 'Medium');
 
+                const availableGoalSurplus = isEmergency ? monthlyEmergencyDeposit : monthlyGoalSip;
+                const remainingDeficit = Math.max(0, target - currSaved);
+                const estimatedMonthsToGoal = availableGoalSurplus > 0
+                  ? Math.ceil(remainingDeficit / availableGoalSurplus)
+                  : 36;
+
                 return (
                   <div key={idx} className="bg-surface p-4 rounded-2xl border border-black/5 space-y-2 text-xs">
                     <div className="flex justify-between items-center font-bold">
@@ -617,6 +726,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                         {priority} Priority
                       </span>
                     </div>
+
+                    <div className="pt-1 text-[11px] font-medium text-emerald-800 dark:text-emerald-300 bg-emerald-100/60 dark:bg-emerald-950/60 p-2 rounded-xl border border-emerald-400/30 flex items-center justify-between">
+                      <span className="font-bold flex items-center space-x-1">
+                        <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span>Estimated Timeframe: ~{estimatedMonthsToGoal} months</span>
+                      </span>
+                      <span className="font-mono font-extrabold text-[10px]">
+                        At ₹{availableGoalSurplus.toLocaleString('en-IN')}/mo track
+                      </span>
+                    </div>
                   </div>
                 );
               })
@@ -625,6 +744,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         </Card>
 
       </div>
+
+      {/* Emergency Fund Adjust Modal */}
+      <EmergencyAdjustModal
+        isOpen={isEmergencyAdjustOpen}
+        onClose={() => setIsEmergencyAdjustOpen(false)}
+        currentSavings={savings}
+        onSave={handleSaveEmergencyAdjust}
+      />
 
       {/* 30-Day Check-in Modal */}
       <MonthlyCheckinModal
@@ -651,24 +778,23 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         }}
       />
 
-      {/* Printable CA Audit Report Modal */}
+      {/* Printable Report Modal */}
       <PrintableReportModal
         isOpen={isPrintableModalOpen}
         onClose={() => setIsPrintableModalOpen(false)}
         userData={{
-          fullName: user?.full_name || 'Finverse Client',
-          email: user?.email || 'user@example.com',
+          fullName: user?.email ? user.email.split('@')[0] : 'Finverse User',
+          email: user?.email || '',
           salary: salary,
           expenses: expenses,
           savings: savings,
           age: profileData?.age || 30,
-          debts: profileData?.debts || [],
+          debts: debtsData?.waterfall?.debts || [],
           goals: profileData?.goals || [],
         }}
         winnerRegime="New Regime"
-        taxSavings={15600}
+        taxSavings={15000}
       />
     </div>
   );
 };
-

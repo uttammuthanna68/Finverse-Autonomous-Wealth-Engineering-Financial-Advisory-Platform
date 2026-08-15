@@ -145,6 +145,22 @@ def calculate_debt_waterfall(
         if classification == "toxic" and balance > 0:
             has_toxic_debt = True
 
+        # Calculate exact compound debt amortization payoff months
+        estimated_payoff_months = 0
+        if balance > 0:
+            eff_payment = min_payment if min_payment > 0 else 1000.0
+            r = (apr / 100.0) / 12.0
+            if r <= 0:
+                estimated_payoff_months = math.ceil(balance / eff_payment)
+            elif eff_payment <= balance * r:
+                estimated_payoff_months = 999  # Payment covers only interest
+            else:
+                try:
+                    num_m = -math.log(1.0 - (r * balance) / eff_payment) / math.log(1.0 + r)
+                    estimated_payoff_months = max(1, math.ceil(num_m))
+                except Exception:
+                    estimated_payoff_months = 36
+
         classified_debts.append({
             "id": debt_id,
             "debt_name": debt_name,
@@ -153,6 +169,8 @@ def calculate_debt_waterfall(
             "minimum_payment": min_payment,
             "classification": classification,
             "allocated_payment": 0.0,
+            "estimated_payoff_months": estimated_payoff_months,
+            "is_fully_paid": balance <= 0,
             "reasoning": "",
         })
 

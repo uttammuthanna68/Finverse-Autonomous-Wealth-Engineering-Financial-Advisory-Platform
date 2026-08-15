@@ -6,6 +6,8 @@ import {
   CreditCard as DebtIcon,
   Plus,
   Trash2,
+  Clock,
+  Check,
 } from 'lucide-react';
 
 interface DebtItem {
@@ -222,14 +224,25 @@ export const DebtPage: React.FC = () => {
       {/* Classified Debts List */}
       {debts.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-extrabold text-main">Classified Payoff List</h2>
+          <h2 className="text-lg font-extrabold text-main">Classified Payoff List & Estimated Finish Lines</h2>
           <div className="grid grid-cols-1 gap-4">
-            {waterfall?.debts?.map((debt: any) => {
-              const isToxic = debt.classification === 'toxic';
+            {(waterfall?.debts || debts).map((debt: any, dIdx: number) => {
+              const isToxic = debt.classification === 'toxic' || debt.apr > 24.0;
+              const bal = Number(debt.balance) || 0;
+              const aprVal = Number(debt.apr) || 14.0;
+              const emiVal = Number(debt.minimum_payment) || 2500;
+
+              let payoffMonths = 0;
+              if (bal > 0) {
+                const r = (aprVal / 100.0) / 12.0;
+                if (r <= 0) payoffMonths = Math.ceil(bal / emiVal);
+                else if (emiVal <= bal * r) payoffMonths = 999;
+                else payoffMonths = Math.ceil(-Math.log(1.0 - (r * bal) / emiVal) / Math.log(1.0 + r));
+              }
 
               return (
                 <div
-                  key={debt.id}
+                  key={debt.id || dIdx}
                   className={`p-5 rounded-card border-2 transition-all space-y-3 ${
                     isToxic ? 'border-warning/40 bg-warning/5' : 'border-black/5 bg-card-bg'
                   }`}
@@ -254,6 +267,7 @@ export const DebtPage: React.FC = () => {
                       <button
                         onClick={() => handleRemoveDebt(debt.id)}
                         className="text-muted hover:text-warning p-1 rounded-lg"
+                        title="Remove Debt"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -263,17 +277,35 @@ export const DebtPage: React.FC = () => {
                   <div className="grid grid-cols-3 gap-2 font-mono text-[11px] bg-surface p-3 rounded-xl border border-black/5">
                     <div>
                       <span className="text-muted block text-[9px] uppercase">Balance</span>
-                      <span className="font-bold text-main">₹{Number(debt.balance).toLocaleString('en-IN')}</span>
+                      <span className="font-bold text-main">₹{bal.toLocaleString('en-IN')}</span>
                     </div>
                     <div>
                       <span className="text-muted block text-[9px] uppercase">APR</span>
-                      <span className="font-bold text-main">{debt.apr}%</span>
+                      <span className="font-bold text-main">{aprVal}%</span>
                     </div>
                     <div>
-                      <span className="text-muted block text-[9px] uppercase">Allocated Payoff</span>
-                      <span className="font-bold text-primary">₹{Number(debt.allocated_payment || 0).toLocaleString('en-IN')}</span>
+                      <span className="text-muted block text-[9px] uppercase">Monthly EMI</span>
+                      <span className="font-bold text-primary">₹{emiVal.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
+
+                  {/* Estimated Finish Line Badge */}
+                  {bal <= 0 ? (
+                    <div className="bg-emerald-100 dark:bg-emerald-950 p-2.5 rounded-xl border border-emerald-400/40 text-emerald-950 dark:text-emerald-200 text-xs font-black flex items-center space-x-1.5">
+                      <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <span>🎉 Congratulations! Loan Fully Paid Off! Zero balance remaining.</span>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-100/60 dark:bg-amber-950/60 p-2.5 rounded-xl border border-amber-300/40 text-amber-900 dark:text-amber-200 text-xs font-extrabold flex items-center justify-between">
+                      <span className="flex items-center space-x-1.5">
+                        <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                        <span>Estimated Payoff Timeframe: ~{payoffMonths > 360 ? '30+ years' : `${payoffMonths} months`}</span>
+                      </span>
+                      <span className="font-mono text-[11px] font-black">
+                        At ₹{emiVal.toLocaleString('en-IN')}/mo EMI
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}
