@@ -1,12 +1,11 @@
 export const getApiBaseUrl = (): string => {
-  const envUrl = import.meta.env.VITE_API_URL;
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
   if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
     return envUrl.trim().replace(/\/+$/, '');
   }
-  // In production (e.g. Vercel deployment), default to relative URL instead of http://localhost:8000
-  // to prevent browser Private Network Access (PNA) local network permission prompts on user devices.
+  // In production (Vercel deployment), default to live Render backend URL if env variable is unset
   if (import.meta.env.PROD) {
-    return '';
+    return 'https://finverse-autonomous-wealth-engineering.onrender.com';
   }
   return 'http://localhost:8000';
 };

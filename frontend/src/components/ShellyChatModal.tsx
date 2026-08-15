@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ShellyMascot } from './ShellyMascot';
 import { X, Send, Sparkles, RotateCcw, ArrowRight } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { fetchWithAuth } from '../api/config';
 
 interface ShellyChatModalProps {
   isOpen: boolean;
@@ -87,9 +88,8 @@ Ask me about financial concepts (like **SWP**, **SIP**, **CAGR**, **CIBIL**, **T
     setIsTyping(true);
 
     try {
-      let response = await fetch('/api/engine/shelly-chat', {
+      let response = await fetchWithAuth('/api/engine/shelly-chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: q,
           query: q,
@@ -98,9 +98,8 @@ Ask me about financial concepts (like **SWP**, **SIP**, **CAGR**, **CIBIL**, **T
       });
 
       if (!response.ok) {
-        response = await fetch('/api/shelly/ask', {
+        response = await fetchWithAuth('/api/shelly/ask', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message: q,
             query: q,
