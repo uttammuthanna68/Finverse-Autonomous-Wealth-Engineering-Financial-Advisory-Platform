@@ -43,7 +43,7 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onNavigate }) => {
 
     try {
       setIsSubmitting(true);
-      await signup(email, password, fullName.trim() || undefined);
+      await signup(email.trim(), password, fullName.trim() || undefined);
       onNavigate('/onboarding');
     } catch (err: any) {
       setError(err.message || 'Signup failed. An account with this email may already exist.');

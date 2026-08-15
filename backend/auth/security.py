@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from passlib.context import CryptContext
 from typing import Optional, Dict, Any
 
-SECRET_KEY = os.getenv("JWT_SECRET", "compound_secret_key_change_in_production_2026")
+SECRET_KEY = os.getenv("JWT_SECRET") or os.getenv("JWT_SECRET_KEY") or "compound_secret_key_change_in_production_2026"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 7
 

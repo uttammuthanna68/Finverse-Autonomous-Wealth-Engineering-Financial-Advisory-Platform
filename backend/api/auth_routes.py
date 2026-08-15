@@ -58,20 +58,23 @@ class AuthResponse(BaseModel):
 def signup(req: SignupRequest, request: Request, db: Session = Depends(get_db)):
     check_rate_limit(request)
 
+    clean_email = req.email.strip().lower()
+    clean_password = req.password.strip()
+
     # Check if user already exists
-    existing_user = db.query(User).filter(User.email == req.email.lower()).first()
+    existing_user = db.query(User).filter(User.email == clean_email).first()
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="An account with this email address already exists."
+            detail="An account with this email address already exists. Please log in instead."
         )
 
     # Create new user
-    hashed = hash_password(req.password)
+    hashed = hash_password(clean_password)
     user = User(
-        email=req.email.lower(),
+        email=clean_email,
         password_hash=hashed,
-        full_name=req.full_name or req.email.split("@")[0].title()
+        full_name=(req.full_name or clean_email.split("@")[0]).title()
     )
     db.add(user)
     db.commit()
@@ -98,11 +101,20 @@ def signup(req: SignupRequest, request: Request, db: Session = Depends(get_db)):
 def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
     check_rate_limit(request)
 
-    user = db.query(User).filter(User.email == req.email.lower()).first()
-    if not user or not verify_password(req.password, user.password_hash):
+    clean_email = req.email.strip().lower()
+    clean_password = req.password.strip()
+
+    user = db.query(User).filter(User.email == clean_email).first()
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password."
+            detail="No account found with this email address. Please check your email or click Create an Account."
+        )
+
+    if not verify_password(clean_password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect password. Please double-check your password and try again."
         )
 
     token = create_access_token({"sub": str(user.id), "email": user.email})

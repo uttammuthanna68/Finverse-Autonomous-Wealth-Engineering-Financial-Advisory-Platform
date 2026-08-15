@@ -73,7 +73,8 @@ def generate_preset_lenses(
     else:
         matched_lens_name = "Medium"
 
-    # Extract live rates from market_snapshot if available
+    # Stabilized long-term CAGR rates for asset classes (5-30 year wealth compounding)
+    # Live market snapshot provides regime analysis, lump sum timing advice, and tactical tilts.
     lc_rate = 12.0
     bond_rate = 6.85
     gold_rate = 8.0
@@ -82,17 +83,23 @@ def generate_preset_lenses(
     if market_snapshot:
         synced_time = market_snapshot.get("last_synced", "Live Market Engine")
         nifty = market_snapshot.get("nifty_50", {})
-        if nifty.get("change_pct_1y"):
-            lc_rate = round(float(nifty["change_pct_1y"]), 1)
-        bond = market_snapshot.get("india_10y_bond", {})
-        if bond.get("yield_pct"):
-            bond_rate = round(float(bond["yield_pct"]), 2)
-        g_data = market_snapshot.get("gold", {})
-        if g_data.get("change_pct_1y"):
-            gold_rate = round(min(20.0, max(8.0, float(g_data["change_pct_1y"]))), 1)
+        if nifty.get("change_pct_1y") is not None:
+            raw_lc = float(nifty["change_pct_1y"])
+            # Clamp 1Y momentum to realistic long-term expected CAGR bounds (9.0% - 15.0%)
+            lc_rate = round(max(9.0, min(15.0, raw_lc)), 1)
 
-    flexi_rate = round(lc_rate + 1.5, 1)
-    small_rate = round(lc_rate + 3.0, 1)
+        bond = market_snapshot.get("india_10y_bond", {})
+        if bond.get("yield_pct") is not None:
+            raw_bond = float(bond["yield_pct"])
+            bond_rate = round(max(5.5, min(8.5, raw_bond)), 2)
+
+        g_data = market_snapshot.get("gold", {})
+        if g_data.get("change_pct_1y") is not None:
+            raw_gold = float(g_data["change_pct_1y"])
+            gold_rate = round(max(6.0, min(10.0, raw_gold)), 1)
+
+    flexi_rate = round(max(10.0, min(16.5, lc_rate + 1.5)), 1)
+    small_rate = round(max(11.0, min(18.0, lc_rate + 3.0)), 1)
     fd_rate = 6.5
 
     def format_6_asset_lens(
@@ -111,15 +118,16 @@ def generate_preset_lenses(
         tot_eq = round(large_cap_pct + flexi_cap_pct + small_cap_pct, 1)
         tot_debt = round(fd_liquid_pct + short_debt_pct, 1)
 
-        # Dynamic CAGR weighted using live rates
-        cagr = round(
-            ((large_cap_pct * (lc_rate / 100.0)) +
-             (flexi_cap_pct * (flexi_rate / 100.0)) +
-             (small_cap_pct * (small_rate / 100.0)) +
-             (fd_liquid_pct * (fd_rate / 100.0)) +
-             (short_debt_pct * (bond_rate / 100.0)) +
-             (gold_pct * (gold_rate / 100.0))) * 100.0, 2
+        # Dynamic CAGR weighted using stabilized rates, clamped to realistic long-term expected return (4% - 18%)
+        raw_cagr = (
+            (large_cap_pct * (lc_rate / 100.0)) +
+            (flexi_cap_pct * (flexi_rate / 100.0)) +
+            (small_cap_pct * (small_rate / 100.0)) +
+            (fd_liquid_pct * (fd_rate / 100.0)) +
+            (short_debt_pct * (bond_rate / 100.0)) +
+            (gold_pct * (gold_rate / 100.0))
         )
+        cagr = round(max(4.0, min(18.0, raw_cagr)), 2)
 
         categories = [
           {

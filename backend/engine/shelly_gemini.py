@@ -9,9 +9,9 @@ SHELLY_SYSTEM_INSTRUCTION = """You are Shelly 🐢, the sharp, witty, caring mas
 
 YOUR CORE GUIDELINES:
 1. CRISP & CONCISE: Give quick, humanized, easy-to-understand definitions (max 2-3 short sentences or 2 bullet points). NO long paragraphs, NO textbook lectures, NO jargon clutter. Get straight to the point!
-2. WITTY & SARCASTIC BANTER: Add a touch of light, sarcastic humor and friendly banter, calling out silly money mistakes (like paying credit card minimum dues, buying ULIPs, or doing equity lump sums when markets are at peak valuations).
-3. TO THE POINT: Answer the user's exact question immediately in plain English that anyone can understand.
-4. USER CONTEXT: Naturally weave user profile or live market status into the answer if provided.
+2. WITTY BANTER: Add a touch of light, witty humor and friendly banter, calling out silly money mistakes (like paying credit card minimum dues, buying ULIPs, or doing equity lump sums when markets are at peak valuations).
+3. TO THE POINT: Answer the user's exact question immediately in plain English.
+4. DIRECT OUTPUT ONLY: Do NOT output any internal thinking process, draft notes, or outline markers (e.g. "Draft:", "Adding Context:", etc.). Output ONLY your final response.
 
 RULES:
 - Surplus Priority: #1 Pay Toxic Debt (>18% APR) -> #2 Build 6-Month Emergency Shield -> #3 Invest in 6-Asset Portfolio.
@@ -26,6 +26,27 @@ Format reply nicely in simple markdown. At the very end of your reply on a new l
 Available paths: `/portfolios`, `/debt`, `/priority`, `/calculator`, `/dashboard`, `/creditcard/rewards`, `/onboarding`.
 """
 
+def get_gemini_api_key() -> str:
+    key = os.getenv("GEMINI_API_KEY", "").strip()
+    if key and key != "your_gemini_api_key_here":
+        return key
+
+    # Try reading directly from .env file at root
+    env_path = os.path.join(os.path.dirname(__file__), "..", "..", ".env")
+    if os.path.exists(env_path):
+        try:
+            with open(env_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith("GEMINI_API_KEY="):
+                        val = line.split("=", 1)[1].strip(" \"'")
+                        if val and val != "your_gemini_api_key_here":
+                            return val
+        except Exception:
+            pass
+    return ""
+
+
 def generate_shelly_gemini_response(
     user_message: str,
     user_context: Optional[Dict[str, Any]] = None,
@@ -35,7 +56,7 @@ def generate_shelly_gemini_response(
     Generates a response from Gemini API with tuned system instructions for Shelly's persona.
     If GEMINI_API_KEY is not set or network fails, falls back gracefully.
     """
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    api_key = get_gemini_api_key()
 
     if not api_key:
         logger.info("GEMINI_API_KEY not found in environment. Using enhanced local engine fallback.")
@@ -54,21 +75,37 @@ def generate_shelly_gemini_response(
 
     # Try official google-genai SDK first, then fallback to google.generativeai
     try:
+        raw_text = ""
         try:
             from google import genai
             from google.genai import types
 
             client = genai.Client(api_key=api_key)
-            response = client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=full_prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=SHELLY_SYSTEM_INSTRUCTION,
-                    temperature=0.5,
-                    max_output_tokens=250
-                )
-            )
-            raw_text = response.text or ""
+            candidate_models = [
+                'gemini-3.6-flash',
+                'gemini-flash-latest',
+                'gemini-3.5-flash',
+                'gemini-3.5-flash-lite',
+                'gemini-flash-lite-latest'
+            ]
+            
+            for m in candidate_models:
+                try:
+                    response = client.models.generate_content(
+                        model=m,
+                        contents=full_prompt,
+                        config=types.GenerateContentConfig(
+                            system_instruction=SHELLY_SYSTEM_INSTRUCTION,
+                            temperature=0.5,
+                            max_output_tokens=800
+                        )
+                    )
+                    raw_text = response.text or ""
+                    if raw_text:
+                        break
+                except Exception as model_err:
+                    logger.warning(f"Gemini model {m} failed: {model_err}")
+                    continue
         except ImportError:
             import google.generativeai as genai
             genai.configure(api_key=api_key)
@@ -78,31 +115,51 @@ def generate_shelly_gemini_response(
             )
             response = model.generate_content(
                 full_prompt,
-                generation_config={"temperature": 0.5, "max_output_tokens": 250}
+                generation_config={"temperature": 0.5, "max_output_tokens": 800}
             )
             raw_text = response.text or ""
 
+        if not raw_text:
+            return None
+
+        # Clean raw text from any thinking or draft process leftovers
+        clean_text = raw_text.strip()
+        import re
+
+        # Remove leading thoughts/draft blocks if present (e.g. * *Draft... or Thinking...)
+        if clean_text.startswith("Thinking Process:") or clean_text.startswith("* *Draft"):
+            lines = clean_text.split("\n")
+            # find first line that starts with actual response text (e.g. bold or letter)
+            start_idx = 0
+            for idx, l in enumerate(lines):
+                if any(l.strip().startswith(p) for p in ["**", "Diversification", "Equity", "Lump Sum", "SWP", "SIP", "CIBIL", "SGB", "Flexi", "Investing"]):
+                    start_idx = idx
+                    break
+            if start_idx > 0:
+                clean_text = "\n".join(lines[start_idx:]).strip()
+
         # Parse actions JSON block if present
         actions = []
-        clean_text = raw_text
+
         if "```json_actions" in raw_text:
-            parts = raw_text.split("```json_actions")
+            parts = clean_text.split("```json_actions")
             clean_text = parts[0].strip()
             action_block = parts[1].split("```")[0].strip()
             try:
                 actions = json.loads(action_block)
             except Exception:
                 pass
-        elif "```json" in raw_text:
-            parts = raw_text.split("```json")
-            clean_text = parts[0].strip()
-            action_block = parts[1].split("```")[0].strip()
-            try:
-                parsed = json.loads(action_block)
-                if isinstance(parsed, list):
-                    actions = parsed
-            except Exception:
-                pass
+        else:
+            json_matches = list(re.finditer(r"```json\s*(\[.*?\])\s*```", clean_text, re.DOTALL))
+            if json_matches:
+                last_match = json_matches[-1]
+                try:
+                    parsed = json.loads(last_match.group(1))
+                    if isinstance(parsed, list) and all(isinstance(x, dict) and "path" in x for x in parsed):
+                        actions = parsed
+                        clean_text = (clean_text[:last_match.start()] + clean_text[last_match.end():]).strip()
+                except Exception:
+                    pass
 
         if not actions:
             msg_lower = user_message.lower()

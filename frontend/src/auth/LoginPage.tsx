@@ -31,7 +31,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
 
     try {
       setIsSubmitting(true);
-      await login(email, password);
+      await login(email.trim(), password);
       onNavigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.');

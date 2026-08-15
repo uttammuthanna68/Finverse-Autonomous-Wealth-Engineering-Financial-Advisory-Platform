@@ -296,16 +296,18 @@ export const PortfoliosPage: React.FC = () => {
     };
   });
 
-  // Calculate Weighted CAGR dynamically
+  // Calculate Weighted CAGR dynamically, clamped to realistic long-term expected returns (4% - 18%)
   const calculateCagr = (allocs: CategoryAlloc[]): number => {
     let sum = 0;
     allocs.forEach((a) => {
-      sum += (a.percentage * (a.cagr_rate || 10.0)) / 100;
+      const rate = Math.max(4.0, Math.min(18.0, a.cagr_rate || 10.0));
+      sum += (a.percentage * rate) / 100;
     });
-    return Math.round(sum * 10) / 10;
+    return Math.round(Math.max(4.0, Math.min(18.0, sum)) * 10) / 10;
   };
 
-  const currentCagr = isCustomizing ? calculateCagr(activeAllocations) : (activePortfolio.expected_cagr || 11.2);
+  const rawCagr = isCustomizing ? calculateCagr(activeAllocations) : (activePortfolio.expected_cagr || 11.2);
+  const currentCagr = Math.round(Math.max(4.0, Math.min(18.0, rawCagr)) * 10) / 10;
 
   // Total Percentage sum for custom validation
   const customPctTotal = Math.round(customPcts.reduce((a, b) => a + b, 0) * 10) / 10;
@@ -1044,7 +1046,13 @@ export const PortfoliosPage: React.FC = () => {
                 <LineChart data={growthData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                   <XAxis dataKey="year" stroke="#8E8E93" fontSize={10} />
-                  <YAxis stroke="#8E8E93" fontSize={10} tickFormatter={(v: any) => `₹${(v/100000).toFixed(1)}L`} />
+                  <YAxis stroke="#8E8E93" fontSize={10} tickFormatter={(v: any) => {
+                    const num = Number(v);
+                    if (!Number.isFinite(num)) return '₹0';
+                    if (num >= 10000000) return `₹${(num / 10000000).toFixed(1)}Cr`;
+                    if (num >= 100000) return `₹${(num / 100000).toFixed(1)}L`;
+                    return `₹${num}`;
+                  }} />
                   <Tooltip formatter={(value: any) => `₹${Number(value).toLocaleString('en-IN')}`} />
                   <Line type="monotone" dataKey="nominal" stroke="#10B981" strokeWidth={3} dot={false} />
                   <Line type="monotone" dataKey="invested" stroke="#6366F1" strokeWidth={2} strokeDasharray="5 5" dot={false} />
@@ -1090,22 +1098,30 @@ export const PortfoliosPage: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-surface p-4 rounded-2xl border border-black/5 space-y-1">
             <span className="text-[10px] uppercase font-bold text-muted block">Total Principal Invested</span>
-            <span className="text-lg font-black text-main font-mono">₹{finalInvested.toLocaleString('en-IN')}</span>
+            <span className="text-lg font-black text-main font-mono">
+              ₹{finalInvested >= 10000000 ? `${(finalInvested / 10000000).toFixed(2)} Cr` : finalInvested.toLocaleString('en-IN')}
+            </span>
           </div>
 
           <div className="bg-surface p-4 rounded-2xl border border-black/5 space-y-1">
             <span className="text-[10px] uppercase font-bold text-muted block">Est. Compound Interest</span>
-            <span className="text-lg font-black text-primary font-mono">₹{estYield.toLocaleString('en-IN')}</span>
+            <span className="text-lg font-black text-primary font-mono">
+              ₹{estYield >= 10000000 ? `${(estYield / 10000000).toFixed(2)} Cr` : estYield.toLocaleString('en-IN')}
+            </span>
           </div>
 
           <div className="bg-surface p-4 rounded-2xl border border-black/5 space-y-1">
             <span className="text-[10px] uppercase font-bold text-muted block">Nominal Future Corpus</span>
-            <span className="text-lg font-black text-main font-mono">₹{finalNominal.toLocaleString('en-IN')}</span>
+            <span className="text-lg font-black text-main font-mono">
+              ₹{finalNominal >= 10000000 ? `${(finalNominal / 10000000).toFixed(2)} Cr` : finalNominal.toLocaleString('en-IN')}
+            </span>
           </div>
 
           <div className="bg-primary/10 p-4 rounded-2xl border border-primary/30 space-y-1">
             <span className="text-[10px] uppercase font-bold text-primary block">Inflation-Adjusted Real Value</span>
-            <span className="text-lg font-black text-primary font-mono">₹{finalReal.toLocaleString('en-IN')}</span>
+            <span className="text-lg font-black text-primary font-mono">
+              ₹{finalReal >= 10000000 ? `${(finalReal / 10000000).toFixed(2)} Cr` : finalReal.toLocaleString('en-IN')}
+            </span>
           </div>
         </div>
       </Card>

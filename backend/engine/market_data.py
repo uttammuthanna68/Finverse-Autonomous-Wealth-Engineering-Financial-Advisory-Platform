@@ -147,7 +147,8 @@ def fetch_live_market_data(force_refresh: bool = False) -> Dict[str, Any]:
             latest_price = clean_float(float(nifty_hist["Close"].iloc[-1]), 24350.5)
             prev_price = clean_float(float(nifty_hist["Close"].iloc[0]), 21000.0)
             if prev_price > 0:
-                change_1y = clean_float(float(((latest_price - prev_price) / prev_price) * 100), 14.2)
+                raw_change = float(((latest_price - prev_price) / prev_price) * 100)
+                change_1y = clean_float(max(-35.0, min(35.0, raw_change)), 14.2)
             else:
                 change_1y = 14.2
             
@@ -171,7 +172,8 @@ def fetch_live_market_data(force_refresh: bool = False) -> Dict[str, Any]:
         if not sensex_hist.empty and len(sensex_hist) > 2:
             s_latest = clean_float(float(sensex_hist["Close"].iloc[-1]), 79800.20)
             s_prev = clean_float(float(sensex_hist["Close"].iloc[0]), 70000.0)
-            s_change = clean_float(float(((s_latest - s_prev) / s_prev) * 100), 13.8) if s_prev > 0 else 13.8
+            s_raw = float(((s_latest - s_prev) / s_prev) * 100) if s_prev > 0 else 13.8
+            s_change = clean_float(max(-35.0, min(35.0, s_raw)), 13.8)
             snapshot["sensex"] = {
                 "symbol": "^BSESN",
                 "name": "BSE Sensex",
@@ -187,7 +189,8 @@ def fetch_live_market_data(force_refresh: bool = False) -> Dict[str, Any]:
         if not gold_hist.empty and len(gold_hist) > 2:
             g_latest = clean_float(float(gold_hist["Close"].iloc[-1]), 68.50)
             g_prev = clean_float(float(gold_hist["Close"].iloc[0]), 58.00)
-            g_change = clean_float(float(((g_latest - g_prev) / g_prev) * 100), 18.5) if g_prev > 0 else 18.5
+            g_raw = float(((g_latest - g_prev) / g_prev) * 100) if g_prev > 0 else 18.5
+            g_change = clean_float(max(-35.0, min(35.0, g_raw)), 18.5)
             snapshot["gold"] = {
                 "symbol": "GOLDBEES.NS",
                 "name": "Gold ETF (India)",

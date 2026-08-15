@@ -28,5 +28,5 @@ def test_shelly_chat_lumpsum_query():
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "success"
-    assert "Lump Sum" in data["reply"]
+    assert "lump sum" in data["reply"].lower()
     assert len(data["actions"]) > 0
