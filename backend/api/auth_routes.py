@@ -54,6 +54,8 @@ class AuthResponse(BaseModel):
     token: str
     user: dict
 
+from sqlalchemy import func
+
 @router.post("/signup", response_model=AuthResponse)
 def signup(req: SignupRequest, request: Request, db: Session = Depends(get_db)):
     check_rate_limit(request)
@@ -61,8 +63,8 @@ def signup(req: SignupRequest, request: Request, db: Session = Depends(get_db)):
     clean_email = req.email.strip().lower()
     clean_password = req.password.strip()
 
-    # Check if user already exists
-    existing_user = db.query(User).filter(User.email == clean_email).first()
+    # Check if user already exists (case-insensitive query)
+    existing_user = db.query(User).filter(func.lower(User.email) == clean_email).first()
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -104,7 +106,7 @@ def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
     clean_email = req.email.strip().lower()
     clean_password = req.password.strip()
 
-    user = db.query(User).filter(User.email == clean_email).first()
+    user = db.query(User).filter(func.lower(User.email) == clean_email).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
