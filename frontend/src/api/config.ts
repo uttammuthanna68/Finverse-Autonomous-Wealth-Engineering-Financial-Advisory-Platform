@@ -30,3 +30,12 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
 
   return response;
 }
+
+export async function safeJson(res: Response): Promise<any> {
+  try {
+    const text = await res.text();
+    return text ? JSON.parse(text) : {};
+  } catch {
+    return {};
+  }
+}
