@@ -4,7 +4,7 @@ export type ShellyPose = 'confident' | 'happy' | 'explaining' | 'panicked' | 'th
 
 interface ShellyMascotProps {
   pose?: ShellyPose;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   animateFloat?: boolean;
   className?: string;
 }
@@ -18,9 +18,10 @@ const POSE_IMAGE_MAP: Record<ShellyPose, string> = {
 };
 
 const SIZE_MAP = {
-  sm: 'w-16 h-16',
-  md: 'w-28 h-28',
-  lg: 'w-40 h-40',
+  sm: 'w-22 h-22 sm:w-24 sm:h-24',
+  md: 'w-32 h-32 sm:w-36 sm:h-36',
+  lg: 'w-48 h-48 sm:w-56 sm:h-56',
+  xl: 'w-60 h-60 sm:w-72 sm:h-72',
 };
 
 export const ShellyMascot: React.FC<ShellyMascotProps> = ({
@@ -34,11 +35,11 @@ export const ShellyMascot: React.FC<ShellyMascotProps> = ({
   const floatClass = animateFloat ? 'animate-float' : '';
 
   return (
-    <div className={`relative inline-block flex-shrink-0 ${floatClass} ${className}`}>
+    <div className={`relative inline-flex items-center justify-center flex-shrink-0 ${floatClass} ${className}`}>
       <img
         src={imgSrc}
-        alt={`Shelly the Wealthy Tortoise (${pose})`}
-        className={`${sizeClass} object-contain filter drop-shadow-md select-none pointer-events-none transition-all`}
+        alt={`Prof. Shelly (${pose})`}
+        className={`${sizeClass} object-contain filter drop-shadow-lg select-none pointer-events-none transition-all duration-300 transform hover:scale-105`}
       />
     </div>
   );

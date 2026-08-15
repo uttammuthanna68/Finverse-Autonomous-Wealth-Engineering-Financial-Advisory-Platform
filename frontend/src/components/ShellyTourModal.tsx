@@ -95,51 +95,51 @@ export const ShellyTourModal: React.FC<ShellyTourModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fadeIn">
-      <Card className="max-w-lg w-full p-6 bg-card-bg shadow-2xl rounded-3xl border border-black/10 relative space-y-5 animate-scaleUp">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn">
+      <Card className="max-w-xl w-full p-6 sm:p-8 bg-card-bg shadow-floating rounded-3xl border border-primary/20 dark:border-emerald-500/30 relative space-y-6 animate-scaleUp">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-muted hover:text-main p-1.5 rounded-full hover:bg-black/5 transition-colors"
+          className="absolute top-4 right-4 text-muted hover:text-main p-2 rounded-full hover:bg-surface transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Step Badge */}
-        <div className="inline-flex items-center space-x-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-          <Sparkles className="w-3.5 h-3.5" />
+        <div className="inline-flex items-center space-x-1.5 bg-primary/10 text-primary dark:text-emerald-400 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border border-primary/20">
+          <Sparkles className="w-4 h-4" />
           <span>{currentStep.badge}</span>
         </div>
 
         {/* Main Content with Shelly Mascot */}
-        <div className="flex flex-col sm:flex-row items-center gap-5 pt-1">
+        <div className="flex flex-col sm:flex-row items-center gap-6 pt-1">
           <ShellyMascot pose={currentStep.pose} size="lg" animateFloat={true} className="flex-shrink-0" />
 
-          <div className="space-y-2 text-center sm:text-left">
-            <h2 className="text-xl font-black text-main leading-snug">{currentStep.title}</h2>
-            <div className="text-xs font-mono font-bold text-primary italic bg-primary/5 p-2 rounded-xl border border-primary/20">
+          <div className="space-y-3 text-center sm:text-left flex-1">
+            <h2 className="text-xl sm:text-2xl font-black text-main leading-tight">{currentStep.title}</h2>
+            <div className="text-xs sm:text-sm font-mono font-bold text-primary dark:text-emerald-400 italic bg-primary/5 dark:bg-emerald-500/10 p-3 rounded-xl border border-primary/20">
               "{currentStep.pun}"
             </div>
-            <p className="text-xs text-muted font-medium leading-relaxed">
+            <p className="text-sm sm:text-base text-muted font-medium leading-relaxed">
               {currentStep.description}
             </p>
           </div>
         </div>
 
         {/* Navigation Buttons */}
-        <div className="flex justify-between items-center pt-2 border-t border-black/5">
+        <div className="flex justify-between items-center pt-3 border-t border-black/10 dark:border-white/10">
           <button
             onClick={onClose}
-            className="text-xs font-bold text-muted hover:text-main px-3 py-2"
+            className="text-xs sm:text-sm font-bold text-muted hover:text-main px-3 py-2"
           >
             Skip Tour
           </button>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2.5">
             {currentStepIndex > 0 && (
               <button
                 onClick={handlePrev}
-                className="px-3.5 py-2 rounded-xl border border-black/10 text-xs font-bold text-main hover:bg-black/5 flex items-center space-x-1"
+                className="px-4 py-2.5 rounded-xl border border-black/10 dark:border-white/10 text-xs sm:text-sm font-bold text-main hover:bg-surface flex items-center space-x-1 transition-all"
               >
                 <ChevronLeft className="w-4 h-4" />
                 <span>Back</span>
@@ -148,7 +148,7 @@ export const ShellyTourModal: React.FC<ShellyTourModalProps> = ({
 
             <button
               onClick={handleNext}
-              className="bg-primary hover:bg-primary/90 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1 shadow-sm"
+              className="bg-primary hover:bg-primary/90 text-white font-bold px-5 py-2.5 rounded-xl text-xs sm:text-sm flex items-center space-x-1.5 shadow-sm transition-all hover:scale-105"
             >
               <span>{currentStepIndex === TOUR_STEPS.length - 1 ? 'Finish Tour' : 'Next'}</span>
               {currentStepIndex < TOUR_STEPS.length - 1 && <ChevronRight className="w-4 h-4" />}

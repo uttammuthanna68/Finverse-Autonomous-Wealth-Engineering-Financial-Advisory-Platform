@@ -308,8 +308,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         </div>
       </div>
       {/* Strategic Execution Advisor Card */}
-      <Card className="p-6 bg-card-bg shadow-card rounded-card border border-black/5 space-y-4">
-        <div className="flex flex-col sm:flex-row items-center gap-5">
+      <Card className="p-6 sm:p-7 bg-card-bg shadow-floating rounded-card border border-primary/20 dark:border-emerald-500/30 space-y-4 glass-reflection">
+        <div className="flex flex-col sm:flex-row items-center gap-6">
           <ShellyMascot
             pose={hasToxicDebt ? 'panicked' : emergencyProgressPct >= 100 ? 'happy' : 'explaining'}
             size="md"
@@ -317,19 +317,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
             className="flex-shrink-0"
           />
 
-          <div className="space-y-2 text-center sm:text-left flex-1">
-            <div className="text-xs font-mono font-bold text-primary uppercase tracking-wider flex items-center space-x-1 justify-center sm:justify-start">
-              <Sparkles className="w-3.5 h-3.5" />
+          <div className="space-y-2.5 text-center sm:text-left flex-1">
+            <div className="text-xs font-mono font-extrabold text-primary dark:text-emerald-400 uppercase tracking-wider flex items-center space-x-1.5 justify-center sm:justify-start">
+              <Sparkles className="w-4 h-4" />
               <span>Prof. Shelly's Strategic Guidance</span>
             </div>
-            <h2 className="text-xl font-black text-main tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-black text-main tracking-tight">
               {hasToxicDebt
                 ? 'High-Interest Debt Payoff Is Priority #1'
                 : emergencyProgressPct < 100
                 ? `Allocate ₹${monthlyEmergencyDeposit.toLocaleString('en-IN')} to Emergency Reserve & ₹${monthlyPortfolioSip.toLocaleString('en-IN')} to Portfolio Investing`
                 : 'Accelerating Portfolio Wealth Compounding'}
             </h2>
-            <p className="text-sm font-semibold text-main leading-relaxed">
+            <p className="text-sm sm:text-base font-semibold text-main leading-relaxed">
               {hasToxicDebt ? (
                 <span className="text-warning">
                   "Woah there! High-interest debt detected! Out of your monthly surplus of <strong>₹{monthlySurplus.toLocaleString('en-IN')}</strong>, put <strong>₹{monthlyDebtPayment.toLocaleString('en-IN')}/mo</strong> toward clearing toxic dues first before market investing!"

@@ -52,15 +52,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md p-8 space-y-6 shadow-card rounded-card-lg border border-black/5 bg-card-bg">
+      <Card className="w-full max-w-md p-8 space-y-6 shadow-floating rounded-card-lg border border-primary/20 dark:border-emerald-500/30 bg-card-bg">
         
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary mx-auto flex items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 dark:bg-emerald-500/20 text-primary dark:text-emerald-400 mx-auto flex items-center justify-center">
             <LogIn className="w-6 h-6" />
           </div>
           <h1 className="text-2xl font-extrabold text-main tracking-tight">Welcome Back</h1>
-          <p className="text-sm text-muted">Log in to manage your financial profile and advisors.</p>
+          <p className="text-sm text-muted font-medium">Log in to manage your financial profile and advisors.</p>
         </div>
 
         {/* Inline Validation / API Error Banner */}
@@ -73,8 +73,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-main block uppercase tracking-wider">
+          <div className="space-y-1.5">
+            <label className="text-xs font-extrabold text-main block uppercase tracking-wider">
               Email Address
             </label>
             <div className="relative">
@@ -85,20 +85,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                 value={email}
                 onChange={handleEmailChange}
                 placeholder="you@example.com"
-                className="w-full bg-surface border border-black/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-main focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                className="w-full bg-surface border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-main focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
               />
             </div>
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <div className="flex justify-between items-center">
-              <label className="text-xs font-bold text-main block uppercase tracking-wider">
+              <label className="text-xs font-extrabold text-main block uppercase tracking-wider">
                 Password
               </label>
               <button
                 type="button"
                 onClick={() => onNavigate('/forgot-password')}
-                className="text-xs font-semibold text-primary hover:underline"
+                className="text-xs font-bold text-primary dark:text-emerald-400 hover:underline cursor-pointer"
               >
                 Forgot Password?
               </button>
@@ -111,7 +111,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                 value={password}
                 onChange={handlePasswordChange}
                 placeholder="••••••••"
-                className="w-full bg-surface border border-black/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-main focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                className="w-full bg-surface border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-main focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
               />
             </div>
           </div>
@@ -119,7 +119,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 px-4 rounded-xl text-sm shadow-sm flex items-center justify-center space-x-2 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+            className="w-full bg-primary hover:bg-primary-hover text-white font-extrabold py-3.5 px-4 rounded-xl text-sm shadow-md flex items-center justify-center space-x-2 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
           >
             {isSubmitting ? (
               <span>Logging in...</span>
@@ -133,11 +133,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
         </form>
 
         {/* Footer Link */}
-        <div className="text-center text-xs text-muted pt-2 border-t border-black/5">
+        <div className="text-center text-xs text-muted font-medium pt-3 border-t border-black/10 dark:border-white/10">
           Don't have an account?{' '}
           <button
             onClick={() => onNavigate('/signup')}
-            className="font-bold text-primary hover:underline"
+            className="font-bold text-primary dark:text-emerald-400 hover:underline cursor-pointer"
           >
             Create an account
           </button>

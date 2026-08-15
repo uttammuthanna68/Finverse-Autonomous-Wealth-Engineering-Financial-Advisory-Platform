@@ -61,11 +61,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onOpe
       <aside
         className={`hidden md:flex ${
           isCollapsed ? 'w-20 px-2 py-4' : 'w-64 p-4'
-        } bg-card-bg border-r border-black/5 flex-col justify-between min-h-screen sticky top-0 h-screen flex-shrink-0 transition-all duration-300 ease-in-out z-30 select-none shadow-sm`}
+        } bg-card-bg border-r border-black/10 dark:border-white/10 flex-col justify-between min-h-screen sticky top-0 h-screen flex-shrink-0 transition-all duration-300 ease-in-out z-30 select-none shadow-sm`}
       >
         <div className="space-y-5">
           {/* Brand & Collapse Header */}
-          <div className="flex items-center justify-between px-2 pt-1 border-b border-black/5 pb-3 min-h-[48px]">
+          <div className="flex items-center justify-between px-2 pt-1 border-b border-black/10 dark:border-white/10 pb-3 min-h-[48px]">
             {!isCollapsed ? (
               <div className="flex items-center space-x-2.5 overflow-hidden">
                 <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center font-black text-sm shadow-sm flex-shrink-0">
@@ -80,7 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onOpe
               <div className="mx-auto">
                 <button
                   onClick={toggleCollapse}
-                  className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center font-black text-sm shadow-sm hover:scale-105 transition-transform"
+                  className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center font-black text-sm shadow-sm hover:scale-105 transition-transform cursor-pointer"
                   title="Expand Sidebar"
                 >
                   F
@@ -91,7 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onOpe
             {!isCollapsed && (
               <button
                 onClick={toggleCollapse}
-                className="p-1.5 rounded-lg text-muted hover:text-main hover:bg-surface transition-colors"
+                className="p-1.5 rounded-lg text-muted hover:text-main hover:bg-surface transition-colors cursor-pointer"
                 title="Collapse Sidebar"
               >
                 <PanelLeftClose className="w-4 h-4" />
@@ -100,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onOpe
           </div>
 
           {/* Nav Links */}
-          <nav className="space-y-1">
+          <nav className="space-y-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentPath === item.path || (item.path === '/dashboard' && currentPath === '/');
@@ -111,10 +111,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onOpe
                     onClick={() => onNavigate(item.path)}
                     className={`w-full flex items-center ${
                       isCollapsed ? 'justify-center py-3' : 'space-x-3 px-3.5 py-2.5'
-                    } rounded-xl text-xs font-bold transition-all ${
+                    } rounded-xl text-xs font-extrabold transition-all duration-200 cursor-pointer ${
                       isActive
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'text-muted hover:text-main hover:bg-surface'
+                        ? 'bg-primary text-white tab-floating-active glass-reflection shadow-active-tab'
+                        : 'text-muted hover:text-main hover:bg-surface hover:-translate-y-0.5'
                     }`}
                   >
                     <Icon className="w-4 h-4 flex-shrink-0" />

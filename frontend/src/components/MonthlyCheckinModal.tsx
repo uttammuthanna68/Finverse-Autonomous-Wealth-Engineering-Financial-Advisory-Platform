@@ -55,15 +55,15 @@ export const MonthlyCheckinModal: React.FC<MonthlyCheckinModalProps> = ({
         </button>
 
         {/* Modal Header with Prof. Shelly */}
-        <div className="flex items-center space-x-4 border-b border-black/5 pb-4">
-          <ShellyMascot pose="happy" size="sm" animateFloat={false} className="w-16 h-16 flex-shrink-0" />
+        <div className="flex items-center space-x-4 border-b border-black/10 dark:border-white/10 pb-4">
+          <ShellyMascot pose="happy" size="md" animateFloat={false} className="flex-shrink-0" />
           <div>
-            <div className="inline-flex items-center space-x-1 text-primary text-[10px] font-black uppercase tracking-wider bg-primary/10 px-2.5 py-0.5 rounded-full border border-primary/20 mb-1">
-              <Calendar className="w-3 h-3" />
+            <div className="inline-flex items-center space-x-1.5 text-primary dark:text-emerald-400 text-xs font-black uppercase tracking-wider bg-primary/10 dark:bg-emerald-500/10 px-3 py-1 rounded-full border border-primary/20 mb-1.5">
+              <Calendar className="w-3.5 h-3.5" />
               <span>30-Day Monthly Progress Check-In</span>
             </div>
-            <h2 className="text-xl font-black text-main tracking-tight">Time for your Monthly Check-in! 🗓️</h2>
-            <p className="text-xs text-muted font-medium">Let's track your financial milestones and confirm this month's budget execution.</p>
+            <h2 className="text-xl sm:text-2xl font-black text-main tracking-tight">Time for your Monthly Check-in! 🗓️</h2>
+            <p className="text-sm text-muted font-medium">Let's track your financial milestones and confirm this month's budget execution.</p>
           </div>
         </div>
 

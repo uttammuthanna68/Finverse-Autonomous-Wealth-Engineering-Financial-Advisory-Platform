@@ -74,15 +74,15 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onNavigate }) => {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md p-8 space-y-6 shadow-card rounded-card-lg border border-black/5 bg-card-bg">
+      <Card className="w-full max-w-md p-8 space-y-6 shadow-floating rounded-card-lg border border-primary/20 dark:border-emerald-500/30 bg-card-bg">
         
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary mx-auto flex items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 dark:bg-emerald-500/20 text-primary dark:text-emerald-400 mx-auto flex items-center justify-center">
             <UserPlus className="w-6 h-6" />
           </div>
           <h1 className="text-2xl font-extrabold text-main tracking-tight">Create Account</h1>
-          <p className="text-sm text-muted">Join Finverse to unlock personalized wealth planning.</p>
+          <p className="text-sm text-muted font-medium">Join Finverse to unlock personalized wealth planning.</p>
         </div>
 
         {/* Inline Validation Banner */}
@@ -95,8 +95,8 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onNavigate }) => {
 
         {/* Signup Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-main block uppercase tracking-wider">
+          <div className="space-y-1.5">
+            <label className="text-xs font-extrabold text-main block uppercase tracking-wider">
               Full Name
             </label>
             <div className="relative">
@@ -106,13 +106,13 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onNavigate }) => {
                 value={fullName}
                 onChange={handleFullNameChange}
                 placeholder="Jane Doe"
-                className="w-full bg-surface border border-black/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-main focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                className="w-full bg-surface border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-main focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
               />
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-main block uppercase tracking-wider">
+          <div className="space-y-1.5">
+            <label className="text-xs font-extrabold text-main block uppercase tracking-wider">
               Email Address
             </label>
             <div className="relative">
@@ -123,13 +123,13 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onNavigate }) => {
                 value={email}
                 onChange={handleEmailChange}
                 placeholder="jane@example.com"
-                className="w-full bg-surface border border-black/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-main focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                className="w-full bg-surface border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-main focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
               />
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-main block uppercase tracking-wider">
+          <div className="space-y-1.5">
+            <label className="text-xs font-extrabold text-main block uppercase tracking-wider">
               Password
             </label>
             <div className="relative">
@@ -139,14 +139,14 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onNavigate }) => {
                 required
                 value={password}
                 onChange={handlePasswordChange}
-                placeholder="At least 6 characters"
-                className="w-full bg-surface border border-black/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-main focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                placeholder="Minimum 8 characters"
+                className="w-full bg-surface border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-main focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
               />
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-main block uppercase tracking-wider">
+          <div className="space-y-1.5">
+            <label className="text-xs font-extrabold text-main block uppercase tracking-wider">
               Confirm Password
             </label>
             <div className="relative">
@@ -157,7 +157,7 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onNavigate }) => {
                 value={confirmPassword}
                 onChange={handleConfirmPasswordChange}
                 placeholder="Re-enter password"
-                className="w-full bg-surface border border-black/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-main focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                className="w-full bg-surface border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-main focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
               />
             </div>
           </div>
@@ -165,13 +165,13 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onNavigate }) => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 px-4 rounded-xl text-sm shadow-sm flex items-center justify-center space-x-2 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+            className="w-full bg-primary hover:bg-primary-hover text-white font-extrabold py-3.5 px-4 rounded-xl text-sm shadow-md flex items-center justify-center space-x-2 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
           >
             {isSubmitting ? (
               <span>Creating Account...</span>
             ) : (
               <>
-                <span>Sign Up</span>
+                <span>Create Account</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
@@ -179,13 +179,13 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onNavigate }) => {
         </form>
 
         {/* Footer Link */}
-        <div className="text-center text-xs text-muted pt-2 border-t border-black/5">
+        <div className="text-center text-xs text-muted font-medium pt-3 border-t border-black/10 dark:border-white/10">
           Already have an account?{' '}
           <button
             onClick={() => onNavigate('/login')}
-            className="font-bold text-primary hover:underline"
+            className="font-bold text-primary dark:text-emerald-400 hover:underline cursor-pointer"
           >
-            Log in here
+            Log in
           </button>
         </div>
       </Card>

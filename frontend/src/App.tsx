@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './auth/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { ThemeToggle } from './components/ThemeToggle';
 import { Sidebar } from './components/Sidebar';
 import { ShellyTourModal } from './components/ShellyTourModal';
 import { FloatingShellyBadge } from './components/FloatingShellyBadge';
@@ -105,7 +107,10 @@ function MainApp() {
   };
 
   return (
-    <div className="min-h-screen bg-surface text-main font-sans flex relative">
+    <div className="min-h-screen bg-surface text-main font-sans flex relative transition-colors duration-300">
+      {/* Persistent Dark/Light Mode Toggle on top right for ALL pages */}
+      <ThemeToggle />
+
       {isAuthenticated && (
         <Sidebar
           currentPath={currentPath}
@@ -113,7 +118,7 @@ function MainApp() {
           onOpenTour={() => setIsTourOpen(true)}
         />
       )}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-20 md:pb-8 overflow-y-auto w-full flex flex-col items-center">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 overflow-y-auto w-full flex flex-col items-center">
         <div className="w-full max-w-7xl mx-auto">
           {renderContent()}
         </div>
@@ -140,8 +145,11 @@ function MainApp() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <MainApp />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <MainApp />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
+

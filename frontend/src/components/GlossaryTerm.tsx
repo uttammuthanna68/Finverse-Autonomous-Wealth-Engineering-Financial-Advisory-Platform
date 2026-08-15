@@ -107,16 +107,16 @@ export const GlossaryTerm: React.FC<GlossaryTermProps> = ({ term, children }) =>
       </span>
 
       {isOpen && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 z-50 w-72 p-4 bg-card-bg rounded-2xl shadow-2xl border border-black/10 text-left animate-fadeIn">
-          <div className="flex items-start space-x-3">
-            <ShellyMascot pose="explaining" size="sm" animateFloat={true} className="flex-shrink-0 mt-0.5" />
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 z-50 w-80 p-4 sm:p-5 bg-card-bg/95 rounded-2xl shadow-floating border border-primary/20 dark:border-emerald-500/30 text-left animate-fadeIn backdrop-blur-md">
+          <div className="flex items-start space-x-3.5">
+            <ShellyMascot pose="explaining" size="sm" animateFloat={true} className="flex-shrink-0" />
             <div className="space-y-1">
-              <div className="text-xs font-black text-main">{entry.title}</div>
-              <p className="text-[11px] text-muted font-medium leading-tight">{entry.definition}</p>
+              <div className="text-sm font-black text-main">{entry.title}</div>
+              <p className="text-xs text-muted font-medium leading-relaxed">{entry.definition}</p>
             </div>
           </div>
 
-          <div className="mt-2.5 pt-2 border-t border-black/5 text-[10px] font-mono font-bold text-primary italic bg-primary/5 p-2 rounded-lg border border-primary/20">
+          <div className="mt-3 pt-2 border-t border-black/5 dark:border-white/10 text-xs font-mono font-bold text-primary dark:text-emerald-400 italic bg-primary/5 dark:bg-emerald-500/10 p-2.5 rounded-xl border border-primary/20">
             "{entry.pun}"
           </div>
         </div>
