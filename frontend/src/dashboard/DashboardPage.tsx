@@ -159,27 +159,30 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
 
   // Monthly Surplus & Priority Waterfall Breakdown
   const monthlySurplus = Math.max(0, salary - expenses);
-  
+
+  // Strict Financial Waterfall Priority Allocation
   let monthlyDebtPayment = 0;
   let monthlyEmergencyDeposit = 0;
-  let monthlyPortfolioSip = 0;
+  let monthlyGoalSip = 0;
 
   if (totalDebtBalance > 0) {
     monthlyDebtPayment = Math.min(monthlySurplus, totalDebtMonthlyEmi > 0 ? totalDebtMonthlyEmi : Math.max(2500, Math.round(totalDebtBalance * 0.15)));
     const remainingAfterDebt = Math.max(0, monthlySurplus - monthlyDebtPayment);
 
-    if (emergencyRemaining > 0) {
-      monthlyEmergencyDeposit = Math.min(remainingAfterDebt, Math.round(remainingAfterDebt * 0.6));
-      monthlyPortfolioSip = Math.max(0, remainingAfterDebt - monthlyEmergencyDeposit);
+    if (remainingAfterDebt > 0 && emergencyRemaining > 0) {
+      monthlyEmergencyDeposit = Math.min(remainingAfterDebt, Math.round(remainingAfterDebt * 0.8));
+      monthlyGoalSip = Math.max(0, remainingAfterDebt - monthlyEmergencyDeposit);
     } else {
-      monthlyPortfolioSip = remainingAfterDebt;
+      monthlyGoalSip = remainingAfterDebt;
     }
   } else if (emergencyRemaining > 0) {
-    monthlyEmergencyDeposit = Math.min(monthlySurplus, Math.round(monthlySurplus * 0.6));
-    monthlyPortfolioSip = Math.max(0, monthlySurplus - monthlyEmergencyDeposit);
+    monthlyEmergencyDeposit = Math.min(monthlySurplus, Math.round(monthlySurplus * 0.75));
+    monthlyGoalSip = Math.max(0, monthlySurplus - monthlyEmergencyDeposit);
   } else {
-    monthlyPortfolioSip = monthlySurplus;
+    monthlyGoalSip = monthlySurplus;
   }
+
+  const monthlyPortfolioSip = monthlyGoalSip;
 
   // Dynamic Portfolio Growth Baseline Persistence
   const savedBaselineStr = localStorage.getItem(storageKeyPortfolioMem);
@@ -542,63 +545,77 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           )}
         </Card>
 
-        {/* Card 4: Goal Horizon & Asset Matcher Engine */}
+        {/* Card 4: Financial Goals & Milestones Tracker */}
         <Card className="p-6 bg-card-bg shadow-card rounded-card border border-black/5 space-y-4">
           <div className="flex items-center justify-between border-b border-black/5 pb-3">
             <div className="flex items-center space-x-2">
               <Target className="w-5 h-5 text-primary" />
-              <h2 className="text-base font-extrabold text-main">Goal Horizon & Asset Deployment Engine</h2>
+              <h2 className="text-base font-extrabold text-main">Financial Goals & Milestones Tracker</h2>
             </div>
+            <span className="text-xs font-mono font-extrabold text-primary">
+              {profileData?.goals?.length || 1} Active Goal{(profileData?.goals?.length || 1) === 1 ? '' : 's'}
+            </span>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
             {(!profileData?.goals || profileData.goals.length === 0) ? (
-              <div className="bg-surface p-4 rounded-xl border border-black/5 text-center text-xs text-muted">
-                No active financial goals added. Edit onboarding or profile to add target goals!
+              <div className="bg-surface p-4 rounded-2xl border border-black/5 space-y-2 text-xs">
+                <div className="flex justify-between items-center font-bold">
+                  <span className="text-main font-black text-sm">Emergency Reserve Shield</span>
+                  <span className="font-mono text-emerald-700 dark:text-emerald-400 font-extrabold">
+                    Target: ₹{emergencyTargetAmount.toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className="h-2.5 w-full bg-surface rounded-full overflow-hidden border border-black/5">
+                  <div
+                    className="h-full bg-emerald-600 rounded-full transition-all"
+                    style={{ width: `${emergencyProgressPct}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[11px] font-medium text-muted">
+                  <span>Saved: ₹{savings.toLocaleString('en-IN')} ({emergencyProgressPct}%)</span>
+                  <span>Priority: Mandatory #1</span>
+                </div>
               </div>
             ) : (
               profileData.goals.map((g: any, idx: number) => {
-                const target = g.target_amount || g.target || 100000;
-                const targetDateStr = g.target_date || '2028-12-31';
-
-                const targetYear = new Date(targetDateStr).getFullYear() || 2028;
-                const currentYear = new Date().getFullYear();
-                const yearsRem = Math.max(1, targetYear - currentYear);
-
-                let recAsset = "Nifty 50 Index Fund + Flexi-Cap SIP";
-                let recBadgeClass = "text-emerald-700 bg-emerald-50 border-emerald-200";
-                let recWarning = "Long horizon (> 5 yrs). High equity exposure maximizes wealth compounding.";
-
-                if (yearsRem < 3) {
-                  recAsset = "Arbitrage Funds / Liquid Debt / Flexi-FD";
-                  recBadgeClass = "text-amber-800 bg-amber-50 border-amber-200";
-                  recWarning = "Short horizon (< 3 yrs). Avoid equity index funds to protect capital from market crashes. 100% Capital Preserved.";
-                } else if (yearsRem <= 5) {
-                  recAsset = "Balanced Advantage Hybrid Fund (60/40) + Gold";
-                  recBadgeClass = "text-indigo-700 bg-indigo-50 border-indigo-200";
-                  recWarning = "Medium horizon (3-5 yrs). Balanced hybrid split for steady growth & downside protection.";
-                }
+                const target = Number(g.target_amount || g.target || 100000);
+                const isEmergency = g.id === 'default_emergency' || g.name?.toLowerCase().includes('emergency');
+                const currSaved = isEmergency ? savings : Number(g.current_amount || 0);
+                const progressPct = Math.min(100, Math.round((currSaved / Math.max(1, target)) * 100));
+                const priority = g.priority || (isEmergency ? 'High' : 'Medium');
 
                 return (
                   <div key={idx} className="bg-surface p-4 rounded-2xl border border-black/5 space-y-2 text-xs">
                     <div className="flex justify-between items-center font-bold">
-                      <span className="text-main font-black text-sm">{g.name}</span>
-                      <span className="font-mono text-primary font-bold">Target: ₹{Number(target).toLocaleString('en-IN')}</span>
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] font-mono text-muted">
-                      <span>Target Date: {targetDateStr} ({yearsRem} yrs remaining)</span>
-                      <span className="font-bold text-main">Req. SIP: ₹{Math.round(target / (yearsRem * 12)).toLocaleString('en-IN')}/mo</span>
-                    </div>
-
-                    <div className={`p-2.5 rounded-xl border text-[11px] font-semibold space-y-1 ${recBadgeClass}`}>
-                      <div className="flex items-center justify-between font-bold">
-                        <span>Recommended Asset: {recAsset}</span>
-                        <span className="font-mono uppercase text-[9px] px-1.5 py-0.5 rounded-md bg-white border border-black/10">
-                          {yearsRem < 3 ? 'Capital Shield' : yearsRem <= 5 ? 'Balanced Hybrid' : 'Equity Growth'}
-                        </span>
+                      <div className="flex items-center space-x-1.5">
+                        <span className="text-main font-black text-sm">{g.name}</span>
+                        {isEmergency && (
+                          <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-950 dark:text-emerald-200 font-extrabold px-2 py-0.5 rounded-full border border-emerald-400/40">
+                            Permanent #1
+                          </span>
+                        )}
                       </div>
-                      <p className="text-[10px] leading-tight font-normal">{recWarning}</p>
+                      <span className="font-mono text-primary font-extrabold">Target: ₹{target.toLocaleString('en-IN')}</span>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="h-2.5 w-full bg-card-bg rounded-full overflow-hidden border border-black/5">
+                      <div
+                        className="h-full bg-emerald-600 rounded-full transition-all duration-500"
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+
+                    <div className="flex justify-between items-center text-[11px] font-semibold text-muted">
+                      <span>Funded: ₹{currSaved.toLocaleString('en-IN')} ({progressPct}%)</span>
+                      <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] uppercase border ${
+                        priority === 'High'
+                          ? 'bg-rose-100 dark:bg-rose-950 text-rose-900 dark:text-rose-200 border-rose-300'
+                          : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-200 border-emerald-300'
+                      }`}>
+                        {priority} Priority
+                      </span>
                     </div>
                   </div>
                 );

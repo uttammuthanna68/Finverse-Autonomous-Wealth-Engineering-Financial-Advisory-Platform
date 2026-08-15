@@ -18,8 +18,11 @@ export interface GoalItem {
   id: string;
   name: string;
   target_amount: number | '';
-  target_date: string; // YYYY-MM-DD
+  target_date?: string;
   priority: GoalPriority;
+  is_mandatory?: boolean;
+  current_amount?: number | '';
+  category?: string;
 }
 
 export interface OnboardingData {
