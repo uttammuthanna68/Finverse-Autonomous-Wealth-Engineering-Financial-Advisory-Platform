@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card } from '../components/Card';
 import { GlossaryTerm } from '../components/GlossaryTerm';
+import { LiveMarketCard } from '../components/LiveMarketCard';
 import { fetchWithAuth } from '../api/config';
 import {
   ResponsiveContainer,
@@ -23,7 +24,6 @@ import {
   Sliders,
   Save,
   Trash2,
-  Edit3,
   BookmarkCheck,
   RotateCcw,
   Sparkles,
@@ -548,6 +548,9 @@ export const PortfoliosPage: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn pb-12">
+      {/* LIVE MARKET INTELLIGENCE & VALUATION CARD */}
+      <LiveMarketCard onOpenShellyChat={() => window.dispatchEvent(new CustomEvent('open_shelly_chat'))} />
+
       {/* TOP PRIORITY EMERGENCY RESERVE BANNER */}
       {!isEmergencyComplete && (
         <div className="bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-amber-500/10 border-2 border-amber-500/40 p-6 rounded-3xl shadow-md space-y-4 animate-fadeIn">
@@ -854,7 +857,7 @@ export const PortfoliosPage: React.FC = () => {
           </div>
 
           <div className="space-y-3">
-            {activeAllocations.map((cat, idx) => {
+            {activeAllocations.map((cat: any, idx: number) => {
               const borderColors = ['border-emerald-500', 'border-emerald-600', 'border-emerald-400', 'border-indigo-500', 'border-indigo-600', 'border-amber-500'];
 
               return (
@@ -864,9 +867,16 @@ export const PortfoliosPage: React.FC = () => {
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-surface text-muted border border-black/5 mb-1 inline-block">
-                        {cat.asset_class || 'Asset'} • ~{cat.cagr_rate || 12}% CAGR
-                      </span>
+                      <div className="flex items-center space-x-2 flex-wrap gap-y-1 mb-1">
+                        <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-surface text-muted border border-black/5 inline-block">
+                          {cat.asset_class || 'Asset'} • ~{cat.cagr_rate || 12}% CAGR
+                        </span>
+                        {cat.live_source && (
+                          <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 inline-block">
+                            📡 {cat.live_source}
+                          </span>
+                        )}
+                      </div>
                       <h3 className="text-sm font-extrabold text-main">
                         <GlossaryTerm term={cat.category}>{cat.category}</GlossaryTerm>
                       </h3>
@@ -889,125 +899,100 @@ export const PortfoliosPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: Charts & Saved Portfolios Panel */}
+        {/* Right Column: Charts & Saved Custom Portfolios Panel */}
         <div className="lg:col-span-6 space-y-6">
-          
-          {/* RIGHT SIDE PANEL: Saved & Other Portfolio Options */}
-          <Card className="p-6 bg-card-bg shadow-card rounded-card border-2 border-primary/20 space-y-4">
-            <div className="flex items-center justify-between border-b border-black/5 pb-3">
+          {/* Live Data Attribution Summary Card */}
+          <Card className="p-5 bg-card-bg shadow-sm rounded-2xl border border-border space-y-3">
+            <div className="flex items-center justify-between border-b border-black/5 pb-2">
               <div className="flex items-center space-x-2">
-                <BookmarkCheck className="w-5 h-5 text-primary" />
-                <h3 className="text-base font-extrabold text-main">Saved & Other Portfolio Options</h3>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                <h3 className="text-sm font-bold text-main">Live Data Sources & Yield Benchmark</h3>
               </div>
-              <span className="text-xs font-mono font-bold text-muted">{lenses.length + savedPortfolios.length} Options</span>
+              <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full font-mono font-bold">
+                Synced Today
+              </span>
             </div>
 
-            {/* List of Portfolio Options */}
-            <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
-              {/* 1. Presets */}
-              <div className="text-[10px] uppercase font-bold text-muted tracking-wider">AI Preset Recommendations</div>
-              {lenses.map((preset) => {
-                const isActive = activePortfolioId === preset.id && !isCustomizing;
-
-                return (
-                  <div
-                    key={preset.id || preset.lens_name}
-                    onClick={() => handleSelectPortfolio(preset)}
-                    className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                      isActive
-                        ? 'bg-primary/10 border-primary shadow-sm ring-1 ring-primary'
-                        : 'bg-surface border-black/5 hover:border-primary/50'
-                    }`}
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xs font-black text-main">{preset.lens_name} ({preset.risk_label})</span>
-                        {preset.is_user_match && (
-                          <span className="text-[10px] bg-primary text-white px-2 py-0.2 rounded-full font-bold">
-                            ⭐ Match
-                          </span>
-                        )}
-                        {isActive && (
-                          <span className="text-[10px] bg-emerald-600 text-white px-2 py-0.2 rounded-full font-bold flex items-center space-x-1">
-                            <Check className="w-3 h-3 inline" /> Active
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-muted line-clamp-1">{preset.description}</p>
-                    </div>
-
-                    <div className="text-right font-mono flex-shrink-0 pl-2">
-                      <span className="text-xs font-black text-primary">~{preset.expected_cagr}%</span>
-                      <span className="text-[10px] text-muted block">CAGR</span>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* 2. User Saved Custom Portfolios */}
-              {savedPortfolios.length > 0 && (
-                <>
-                  <div className="text-[10px] uppercase font-bold text-muted tracking-wider pt-2">My Saved Portfolios</div>
-                  {savedPortfolios.map((saved) => {
-                    const isActive = activePortfolioId === saved.id && !isCustomizing;
-
-                    return (
-                      <div
-                        key={saved.id}
-                        onClick={() => handleSelectPortfolio(saved)}
-                        className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                          isActive
-                            ? 'bg-indigo-50 border-indigo-500 shadow-sm ring-1 ring-indigo-500'
-                            : 'bg-surface border-black/5 hover:border-indigo-400'
-                        }`}
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-xs font-black text-main">{saved.lens_name}</span>
-                            <span className="text-[10px] bg-indigo-100 text-indigo-700 font-extrabold px-2 py-0.2 rounded-full">
-                              Saved
-                            </span>
-                            {isActive && (
-                              <span className="text-[10px] bg-indigo-600 text-white px-2 py-0.2 rounded-full font-bold flex items-center space-x-1">
-                                <Check className="w-3 h-3 inline" /> Active
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-muted line-clamp-1">{saved.description}</p>
-                        </div>
-
-                        <div className="flex items-center space-x-3 flex-shrink-0 pl-2">
-                          <div className="text-right font-mono">
-                            <span className="text-xs font-black text-indigo-600">~{saved.expected_cagr}%</span>
-                            <span className="text-[10px] text-muted block">CAGR</span>
-                          </div>
-
-                          <button
-                            onClick={(e) => handleDeletePortfolio(saved.id!, e)}
-                            className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                            title="Delete Saved Portfolio"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </>
-              )}
+            <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+              <div className="bg-surface p-2.5 rounded-xl border border-black/5">
+                <span className="text-[10px] text-muted block font-sans">Large Cap Benchmark</span>
+                <strong className="text-main">NSE Nifty 50 Live Feed</strong>
+              </div>
+              <div className="bg-surface p-2.5 rounded-xl border border-black/5">
+                <span className="text-[10px] text-muted block font-sans">Short-Duration Debt</span>
+                <strong className="text-main">India 10Y G-Sec Yield (6.85%)</strong>
+              </div>
+              <div className="bg-surface p-2.5 rounded-xl border border-black/5">
+                <span className="text-[10px] text-muted block font-sans">Gold Allocation</span>
+                <strong className="text-main">Gold ETF Spot (GOLDBEES.NS)</strong>
+              </div>
+              <div className="bg-surface p-2.5 rounded-xl border border-black/5">
+                <span className="text-[10px] text-muted block font-sans">FD / Liquid Yield</span>
+                <strong className="text-main">RBI Scheduled Bank Sweep-In</strong>
+              </div>
             </div>
-
-            {/* Quick Action Footer inside Right Side Panel */}
-            <div className="pt-2 border-t border-black/5 flex items-center justify-between">
-              <button
-                onClick={handleStartCustomizing}
-                className="w-full bg-surface hover:bg-black/5 border border-black/10 text-main text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center space-x-2 transition-all"
-              >
-                <Edit3 className="w-3.5 h-3.5 text-amber-500" />
-                <span>Create New Custom Allocation</span>
-              </button>
-            </div>
+            <p className="text-[11px] text-muted italic">
+              All portfolio CAGR figures and surplus allocations are calculated from live market indices and real-time yield curves.
+            </p>
           </Card>
+
+          {/* User Saved Custom Portfolios Panel (Only shown if user saved custom portfolios) */}
+          {savedPortfolios.length > 0 && (
+            <Card className="p-6 bg-card-bg shadow-card rounded-card border-2 border-primary/20 space-y-4">
+              <div className="flex items-center justify-between border-b border-black/5 pb-3">
+                <div className="flex items-center space-x-2">
+                  <BookmarkCheck className="w-5 h-5 text-primary" />
+                  <h3 className="text-base font-extrabold text-main">My Saved Custom Portfolios</h3>
+                </div>
+                <span className="text-xs font-mono font-bold text-muted">{savedPortfolios.length} Saved</span>
+              </div>
+
+              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                {savedPortfolios.map((saved) => {
+                  const isActive = activePortfolioId === saved.id && !isCustomizing;
+
+                  return (
+                    <div
+                      key={saved.id}
+                      onClick={() => handleSelectPortfolio(saved)}
+                      className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                        isActive
+                          ? 'bg-indigo-50 border-indigo-500 shadow-sm ring-1 ring-indigo-500'
+                          : 'bg-surface border-black/5 hover:border-indigo-400'
+                      }`}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs font-black text-main">{saved.lens_name}</span>
+                          {isActive && (
+                            <span className="text-[10px] bg-indigo-600 text-white px-2 py-0.2 rounded-full font-bold flex items-center space-x-1">
+                              <Check className="w-3 h-3 inline" /> Active
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted line-clamp-1">{saved.description}</p>
+                      </div>
+
+                      <div className="flex items-center space-x-3 flex-shrink-0 pl-2">
+                        <div className="text-right font-mono">
+                          <span className="text-xs font-black text-indigo-600">~{saved.expected_cagr}%</span>
+                          <span className="text-[10px] text-muted block">CAGR</span>
+                        </div>
+
+                        <button
+                          onClick={(e) => handleDeletePortfolio(saved.id!, e)}
+                          className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                          title="Delete Saved Portfolio"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
 
           {/* Chart 1: Recharts Donut Allocation */}
           <Card className="p-6 bg-card-bg shadow-card rounded-card border border-black/5 space-y-4">

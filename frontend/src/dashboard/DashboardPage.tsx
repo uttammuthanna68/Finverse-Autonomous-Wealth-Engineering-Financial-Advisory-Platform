@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '../components/Card';
 import { GlossaryTerm } from '../components/GlossaryTerm';
 import { ShellyMascot } from '../components/ShellyMascot';
+import { LiveMarketCard } from '../components/LiveMarketCard';
 import { MonthlyCheckinModal } from '../components/MonthlyCheckinModal';
 import { AnnualStepUpModal } from '../components/AnnualStepUpModal';
 import { PrintableReportModal } from '../components/PrintableReportModal';
@@ -258,6 +259,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn">
+      {/* Live Market Intelligence Bar */}
+      <LiveMarketCard compact onOpenShellyChat={() => window.dispatchEvent(new CustomEvent('open_shelly_chat'))} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-black/5 pb-4">
         <div>

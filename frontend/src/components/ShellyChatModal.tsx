@@ -20,6 +20,7 @@ interface ChatMessage {
   sender: 'shelly' | 'user';
   text: string;
   actions?: ActionLink[];
+  source?: string;
   timestamp: string;
 }
 
@@ -104,6 +105,7 @@ export const ShellyChatModal: React.FC<ShellyChatModalProps> = ({
           sender: 'shelly',
           text: data.reply || "I'm sorry, I couldn't process that query right now.",
           actions: data.actions || [],
+          source: data.source,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         };
         setMessages((prev) => [...prev, shellyReply]);
@@ -228,6 +230,13 @@ export const ShellyChatModal: React.FC<ShellyChatModalProps> = ({
                       : 'bg-primary text-white rounded-tr-xs font-semibold'
                   }`}
                 >
+                  {isShelly && msg.source === 'gemini_ai' && (
+                    <div className="flex items-center space-x-1 text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full w-fit mb-1 border border-amber-500/20">
+                      <Sparkles className="w-3 h-3 text-amber-500" />
+                      <span>Gemini AI Engine</span>
+                    </div>
+                  )}
+
                   <div className="leading-relaxed whitespace-pre-wrap">
                     {renderFormattedText(msg.text)}
                   </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShellyMascot } from './ShellyMascot';
 import { ShellyChatModal } from './ShellyChatModal';
 import { Sparkles, HelpCircle, X, Bot } from 'lucide-react';
@@ -15,6 +15,15 @@ export const FloatingShellyBadge: React.FC<FloatingShellyBadgeProps> = ({
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [isBubbleOpen, setIsBubbleOpen] = useState<boolean>(false);
   const [quoteIndex, setQuoteIndex] = useState<number>(0);
+
+  useEffect(() => {
+    const handleOpenChat = () => {
+      setIsChatOpen(true);
+      setIsBubbleOpen(false);
+    };
+    window.addEventListener('open_shelly_chat' as any, handleOpenChat);
+    return () => window.removeEventListener('open_shelly_chat' as any, handleOpenChat);
+  }, []);
 
   const ShellyQuotes = [
     "Slow and steady wins the compounding race! 🐢",

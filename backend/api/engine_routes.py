@@ -25,6 +25,8 @@ from backend.engine.calculators import (
 )
 from backend.engine.rewards import optimize_card_rewards
 from backend.engine.tax_engine import analyze_tax_optimization
+from backend.engine.market_data import fetch_live_market_data
+from backend.engine.shelly_gemini import generate_shelly_gemini_response
 
 router = APIRouter(prefix="/api/engine", tags=["Engine"])
 
@@ -275,7 +277,13 @@ def calculate_allocation(
         )
         goal_portfolios.append(alloc)
 
-    presets = generate_preset_lenses(user_age=age, monthly_surplus=surplus, user_risk_score=score)
+    market_snap = fetch_live_market_data()
+    presets = generate_preset_lenses(
+        user_age=age,
+        monthly_surplus=surplus,
+        user_risk_score=score,
+        market_snapshot=market_snap
+    )
 
     return {
         "status": "success",
@@ -541,12 +549,45 @@ class ShellyChatRequest(BaseModel):
     message: str
     current_path: Optional[str] = None
 
+@router.get("/market-intelligence")
+def get_market_intelligence(force_refresh: bool = False):
+    """
+    Returns live market metrics (Nifty 50, Sensex, Gold, 10Y Bond), valuation regime, 
+    and dynamic Lump Sum vs SIP investment advice.
+    """
+    try:
+        data = fetch_live_market_data(force_refresh=force_refresh)
+        return {
+            "status": "success",
+            "market_data": data
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/shelly-chat")
 def shelly_chat_endpoint(req: ShellyChatRequest):
     raw_msg = req.message.strip().lower()
-    actions = []
+    
+    # 1. Fetch live market snapshot for context
+    market_snapshot = fetch_live_market_data(force_refresh=False)
+    
+    # 2. Try Gemini AI integration first if key is present
+    gemini_res = generate_shelly_gemini_response(
+        user_message=req.message,
+        user_context=None,
+        market_snapshot=market_snapshot
+    )
+    if gemini_res:
+        return {
+            "status": "success",
+            "reply": gemini_res["reply"],
+            "actions": gemini_res["actions"],
+            "source": "gemini_ai"
+        }
 
-    # Clean out question prefixes and suffixes for normalization
+    # 3. Local Rule Engine Fallback (Witty, Crisp & Market-Aware)
+    actions = []
     clean_msg = raw_msg
     for prefix in [
         "what is ", "what was ", "what are ", "explain ", "tell me about ",
@@ -575,197 +616,170 @@ def shelly_chat_endpoint(req: ShellyChatRequest):
             pass
 
     # Domain Pattern Matching (checking raw_msg and clean_msg)
-    # 1. Equity, Equity Allocation, Debt Allocation & Asset Allocation
-    if any(k in raw_msg or k in clean_msg for k in ["equity allocation", "equity", "debt allocation", "asset allocation", "allocation"]):
+    # Lump Sum Specific Match with Live Market Warning
+    if any(k in raw_msg or k in clean_msg for k in ["lump sum", "lumpsum", "single investment", "one time investment", "one-time"]):
+        pe_level = market_snapshot.get("regime", {}).get("pe_level", 24.6)
+        lumpsum_rec = market_snapshot.get("regime", {}).get("lumpsum_recommendation", "AVOID_LUMPSUM")
+        
+        if lumpsum_rec == "AVOID_LUMPSUM":
+            reply = (
+                f"**Lump Sum** means dumping a big pile of cash into an investment all at once — like dropping ₹1 Lakh into an equity index fund today.\n\n"
+                f"🐢 **Shelly's Market Warning**: Right now, the Nifty 50 P/E ratio is sitting elevated at **{pe_level}**. "
+                f"Lumping large cash into equity when valuations are high is like buying full-price tickets to a movie that's about to go on sale. "
+                f"**My recommendation**: Hold off on equity lump sums right now! Break your money into monthly SIPs or park it in Short-Duration Debt/FDs."
+            )
+        else:
+            reply = (
+                f"**Lump Sum** means investing a single lump of capital upfront instead of spreading it out monthly (SIP).\n\n"
+                f"• **When to do it**: When market valuations are low or after a healthy correction.\n"
+                f"• **Finverse Rule**: Always keep your 6-month Emergency Reserve intact before doing any equity lump sum!"
+            )
+        actions.append({"label": "Explore 6-Asset Portfolios", "path": "/portfolios"})
+        actions.append({"label": "Open Return Calculators", "path": "/calculator"})
+
+    # Equity & Asset Allocation
+    elif any(k in raw_msg or k in clean_msg for k in ["equity allocation", "equity", "debt allocation", "asset allocation", "allocation"]):
         reply = (
-            "**Equity Allocation** is the percentage of your monthly surplus invested in equity assets (like Large Cap, Mid Cap, and Small Cap stock funds) vs safety debt assets (like FDs and Bonds):\n\n"
-            "• **Equity Role**: Drives long-term wealth compounding and beats inflation (~12–15% CAGR).\n"
-            "• **Debt Role**: Protects capital safety and provides emergency liquidity (~6.5–7.5% CAGR).\n"
-            "• **Finverse Allocation Rule**: Based on the `100 - Age` formula adjusted by your personal risk capacity score (e.g., a 30-year-old with moderate risk gets **70% Equity / 30% Debt**).\n\n"
-            "View your customized 6-Asset Portfolio breakdown on the **Portfolios** page!"
+            "**Equity Allocation** is the percentage of your surplus invested in stocks/mutual funds vs safe debt:\n\n"
+            "• **Equity**: Grows wealth & beats inflation (~12–15% CAGR).\n"
+            "• **Debt/FD**: Keeps capital safe & liquid (~6.5–7.5% CAGR).\n"
+            "• **Finverse Rule**: Calculated using `100 - Age` adjusted by your personal Risk Capacity Score."
         )
         actions.append({"label": "Explore 6-Asset Portfolios", "path": "/portfolios"})
-        actions.append({"label": "Check Risk Capacity", "path": "/priority"})
+        actions.append({"label": "Check Risk Profile", "path": "/priority"})
 
-    # 2. Risk Capacity, Risk Score & Risk Profile
+    # Risk Capacity
     elif any(k in raw_msg or k in clean_msg for k in ["risk capacity", "risk score", "risk tolerance", "risk profile"]):
         reply = (
-            "**Risk Capacity** is an objective evaluation of how much financial market risk your situation allows you to take:\n\n"
-            "• Calculated based on your **Age**, **Income Stability**, **Fixed Living Expenses**, **Toxic Debt Balance**, and **Number of Dependents**.\n"
-            "• **High Risk Capacity**: Unlocks higher equity allocation (~70-80%) for aggressive long-term compounding.\n"
-            "• **Low Risk Capacity**: Recommends higher FD & bond allocation to guarantee capital safety."
+            "**Risk Capacity** is how much market risk your real bank account can actually handle — not how brave you feel!\n\n"
+            "• Calculated based on **Age**, **Income Stability**, **Fixed Expenses**, **Toxic Debt**, and **Dependents**."
         )
         actions.append({"label": "View Risk Profile & Priority", "path": "/priority"})
 
-    # 3. Portfolio Rebalancing
+    # Portfolio Rebalancing
     elif any(k in raw_msg or k in clean_msg for k in ["rebalanc", "rebalance"]):
         reply = (
-            "**Portfolio Rebalancing** means periodically resetting your investments back to your target asset mix (e.g. 70% Equity / 30% Debt):\n\n"
-            "• **Why it matters**: When equity markets rally, equity might grow from 70% to 85% of your portfolio, exposing you to higher crash risk. Rebalancing systematically sells high and buys low to lock in profits!"
+            "**Portfolio Rebalancing** means resetting your money back to your target asset mix (e.g. 70% Equity / 30% Debt).\n\n"
+            "• When equity rallies, sell a little equity high and lock profits into debt. When equity crashes, buy low!"
         )
         actions.append({"label": "View Portfolios Page", "path": "/portfolios"})
 
-    # 4. XIRR & CAGR
+    # XIRR & CAGR
     elif any(k in raw_msg or k in clean_msg for k in ["xirr", "extended internal rate of return"]):
         reply = (
-            "**XIRR (Extended Internal Rate of Return)** is the accurate annualized return rate for investments made via multiple periodic cash flows (like monthly SIPs or step-up SIPs):\n\n"
-            "• Unlike simple CAGR (which only measures single lumpsums), XIRR accounts for the exact dates of every monthly SIP installment."
+            "**XIRR** is the true annualized return for monthly SIP cash flows, taking exact installment dates into account."
         )
         actions.append({"label": "Try SIP Calculator", "path": "/calculator"})
 
     elif any(k in raw_msg or k in clean_msg for k in ["cagr", "rate of return", "compound rate"]):
         reply = (
-            "**CAGR (Compound Annual Growth Rate)** measures the annualized rate at which an investment grows over time:\n\n"
-            "Formula: `CAGR = (End Value / Start Value)^(1/Years) - 1`."
+            "**CAGR** is the compound annual growth rate of a single lump sum investment over time."
         )
         actions.append({"label": "Open Return Simulator", "path": "/calculator"})
 
-    # 5. Expense Ratio & Direct vs Regular Mutual Funds
+    # Expense Ratio & Direct vs Regular Mutual Funds
     elif any(k in raw_msg or k in clean_msg for k in ["expense ratio", "direct plan", "regular plan", "direct vs regular"]):
         reply = (
-            "**Expense Ratio & Direct Mutual Funds**:\n\n"
-            "• **Expense Ratio**: The small annual percentage fee charged by mutual fund companies to manage your money.\n"
-            "• **Direct vs Regular**: Direct plans buy straight from the mutual fund company with **zero agent commissions**. Regular plans charge 0.5–1% extra per year in distributor fees, which can eat up lakhs over 20 years!"
+            "**Direct vs Regular Funds**:\n\n"
+            "• **Direct Plan**: Zero distributor commissions. 100% of your money grows for you.\n"
+            "• **Regular Plan**: Pays 0.5–1% extra annual fee to middleman brokers. Avoid them!"
         )
         actions.append({"label": "Explore Portfolios", "path": "/portfolios"})
 
-    # 6. Tax Saving / Section 80C / ELSS / PPF / EPF / NPS
+    # Tax Saving / Section 80C
     elif any(k in raw_msg or k in clean_msg for k in ["elss", "80c", "tax save", "ppf", "epf", "nps", "section 80c"]):
         reply = (
-            "**Tax Saving Instruments (Section 80C)** allow tax deductions up to ₹1.5 Lakhs per year:\n\n"
-            "• **ELSS Mutual Funds**: Lowest lock-in (3 years) + highest growth potential (~12-14% CAGR).\n"
-            "• **PPF (Public Provident Fund)**: 15-year lock-in, 100% tax-free guaranteed returns (~7.1%).\n"
-            "• **EPF**: Mandatory 12% deduction for salaried employees.\n"
-            "• **NPS**: Additional ₹50,000 tax deduction under Section 80CCD(1B)."
+            "**Tax Saving (Section 80C)** allows tax deductions up to ₹1.5 Lakhs/yr:\n\n"
+            "• **ELSS Funds**: 3-yr lock-in + equity growth (~12-14% CAGR).\n"
+            "• **PPF**: 15-yr lock-in, 100% tax-free guaranteed returns (~7.1%)."
         )
         actions.append({"label": "View Priority Plan", "path": "/priority"})
 
-    # 7. Insurance / Term Life Insurance / Health Insurance / ULIP
+    # Insurance
     elif any(k in raw_msg or k in clean_msg for k in ["insurance", "term insurance", "health insurance", "ulip"]):
         reply = (
-            "**Financial Insurance Rules**:\n\n"
-            "• **Term Life Insurance**: Pure life protection paying a large lump sum to your family if you pass away. High cover at low cost.\n"
-            "• **Health Insurance**: Mandatory policy protecting your emergency savings from medical bills.\n"
-            "• **Avoid ULIPs**: Blending insurance and investment results in high hidden fees and lower returns!"
+            "**Insurance Rules**:\n\n"
+            "• **Term Insurance**: Pure life protection. High cover for low cost.\n"
+            "• **Health Insurance**: Mandatory shield against hospital bills.\n"
+            "• **Avoid ULIPs**: Blending investment + insurance gives bad returns and high fees!"
         )
         actions.append({"label": "View Priority Protection", "path": "/priority"})
 
-    # 8. SGB / Sovereign Gold Bonds / NAV / Index Funds / 6 Asset Classes
+    # 6 Asset Classes & SGB
     elif any(k in raw_msg or k in clean_msg for k in ["sgb", "sovereign gold", "nav", "net asset value", "index fund", "asset class", "nifty", "large cap", "mid cap", "small cap", "gold", "fixed deposit", "bonds"]):
         reply = (
-            "Finverse allocates capital across **6 distinct Indian asset classes**:\n\n"
-            "1. **Nifty 50 Large Cap Index** (~12% CAGR) for blue-chip equity.\n"
-            "2. **Flexi & Mid Cap Equity** (~13.5% CAGR) for growth.\n"
-            "3. **Small Cap Index Funds** (~15% CAGR) for aggressive upside.\n"
-            "4. **Fixed Deposits & Liquid Funds** (~6.5% CAGR) for capital safety.\n"
-            "5. **Short Duration Debt Bonds** (~7.5% CAGR) for yield.\n"
-            "6. **Sovereign Gold Bonds (SGB) / Gold ETFs** (~8% CAGR + 2.5% extra interest) for inflation hedging."
+            "Finverse allocates capital across **6 Indian asset classes**:\n"
+            "1. Nifty 50 Large Cap (~12% CAGR)\n"
+            "2. Flexi & Mid Cap (~13.5% CAGR)\n"
+            "3. Small Cap Index (~15% CAGR)\n"
+            "4. Fixed Deposits (~6.5% CAGR)\n"
+            "5. Short Duration Debt (~7.5% CAGR)\n"
+            "6. Sovereign Gold Bonds SGB (~8% CAGR + 2.5% interest)"
         )
         actions.append({"label": "Explore 6-Asset Portfolios", "path": "/portfolios"})
 
-    # 9. APR / Annual Percentage Rate / Toxic Interest Rates
+    # APR & Toxic Debt
     elif any(k in raw_msg or k in clean_msg for k in ["apr", "annual percentage rate", "interest rate", "toxic rate", "toxic debt"]):
         reply = (
-            "**APR (Annual Percentage Rate)** represents the annualized cost of borrowing money, including interest and fees:\n\n"
-            "• **Toxic High-APR Debt (>18-24%)**: Credit cards & personal loans typically charge **36–42% APR**. Finverse prioritizes paying these off first before investing single Rupee in equity markets!\n"
-            "• **Low-APR Debt (<9%)**: Home loans & education loans carry lower APRs and offer tax deductions under Sections 24(b) & 80E.\n\n"
-            "View your debt payoff waterfall on the **Debt Portfolio** page!"
+            "**Toxic High-APR Debt (>18-24%)**: Credit cards & instant personal loans charge up to **42% APR**. "
+            "Finverse requires paying these off 100% before investing single Rupee in equity!"
         )
         actions.append({"label": "Go to Debt Portfolio", "path": "/debt"})
-        actions.append({"label": "View Dashboard Roadmap", "path": "/dashboard"})
 
-    # 10. EMI / Minimum Payment / Minimum Due / Outstanding Dues
-    elif any(k in raw_msg or k in clean_msg for k in ["emi", "monthly emi", "minimum payment", "minimum due", "due date", "outstanding balance"]):
+    # EMI & Minimum Payment
+    elif any(k in raw_msg or k in clean_msg for k in ["emi", "monthly emi", "minimum payment", "minimum due", "due date"]):
         reply = (
-            "**EMI (Equated Monthly Installment)** is the fixed monthly amount paid toward loans:\n\n"
-            "• **Credit Card Minimum Dues Warning**: Paying only the minimum due on credit cards triggers 40%+ annual interest on your entire balance! Always pay 100% of bill statement dues before the due date.\n"
-            "• **Debt Avalanche Method**: Pay minimum dues on all loans, then throw 100% of remaining surplus at the debt with the highest APR!"
+            "**Credit Card Minimum Dues Warning**: Paying only the minimum due triggers 40%+ interest on your full balance! Always pay 100% statement dues."
         )
         actions.append({"label": "Open Debt Payoff Waterfall", "path": "/debt"})
 
-    # 11. Credit Cards, Best Credit Cards, Rewards, Cashback & Airmiles
-    elif any(k in raw_msg or k in clean_msg for k in ["credit card", "best card", "which card", "card reward", "cashback", "airmiles", "card recommendation", "recommend card"]):
+    # Credit Cards & Rewards
+    elif any(k in raw_msg or k in clean_msg for k in ["credit card", "best card", "card reward", "cashback", "airmiles"]):
         reply = (
-            "To pick the **best credit card** for your profile, evaluate cards based on your major spending categories:\n\n"
-            "• **Best for Online Cashback**: SBI Cashback (5% flat online cashback) / ICICI Amazon Pay.\n"
-            "• **Best for Travel & Dining**: HDFC Regalia Gold / Axis Atlas (airport lounge access & airmiles).\n"
-            "• **No CIBIL / New to Credit**: Secured FD-backed credit cards (IDFC FIRST Wow / OneCard FD) to build credit history safely.\n\n"
-            "Explore top Indian cards and optimize rewards on our **Credit Card Rewards** page!"
+            "**Top Credit Cards**:\n\n"
+            "• **Online Shopping**: SBI Cashback (5% flat online cashback).\n"
+            "• **Travel & Dining**: Axis Atlas / HDFC Regalia Gold.\n"
+            "• **New to Credit**: FD-backed cards like IDFC FIRST Wow."
         )
         actions.append({"label": "Optimize Card Rewards", "path": "/creditcard/rewards"})
-        actions.append({"label": "Check Debt & CIBIL", "path": "/debt"})
 
-    # 12. Emergency Fund, Flexi-FD, Bank Sweep-In & Liquid Funds
-    elif any(k in raw_msg or k in clean_msg for k in ["flexi fd", "flexi-fd", "sweep in", "sweep-in", "emergency fund", "emergency reserve", "liquid fund", "6x", "reserve cushion"]):
+    # Emergency Fund & Flexi-FD
+    elif any(k in raw_msg or k in clean_msg for k in ["flexi fd", "flexi-fd", "sweep in", "emergency fund", "liquid fund"]):
         reply = (
-            "The **Gold Standard Emergency Fund (6× Rule)** is saving **6 months of living expenses** in liquid, penalty-free instruments before taking equity market risk:\n\n"
-            "• **50% Flexi-FD (Bank Sweep-In)**: Earns ~6.5–7.5% p.a. while connected to your bank account for **instant 24/7 ATM & UPI access** without premature withdrawal penalties.\n"
-            "• **50% Liquid / Arbitrage Debt Fund**: Provides high tax efficiency for 20-30% tax bracket earners with T+1 business day instant redemption.\n\n"
-            "Check your Emergency Reserve progress on the **Portfolios** page!"
+            "**6-Month Emergency Shield**:\n\n"
+            "• **50% Flexi-FD (Bank Sweep-In)**: Earns ~7% interest with 24/7 instant ATM access.\n"
+            "• **50% Liquid Mutual Fund**: High tax efficiency for higher tax brackets."
         )
-        actions.append({"label": "View Emergency Fund Target", "path": "/portfolios"})
-        actions.append({"label": "View Priority Plan", "path": "/priority"})
+        actions.append({"label": "View Emergency Target", "path": "/portfolios"})
 
-    # 13. Surplus, Monthly Surplus, Cash Flow, Salary & Expenses
-    elif any(k in raw_msg or k in clean_msg for k in ["surplus", "monthly surplus", "cash flow", "inflow", "outflow", "salary", "expenses"]):
+    # Monthly Surplus
+    elif any(k in raw_msg or k in clean_msg for k in ["surplus", "monthly surplus", "cash flow", "salary"]):
         reply = (
-            "**Monthly Surplus** is the money remaining after subtracting monthly living expenses from monthly salary (`Surplus = Inflow - Outflow`).\n\n"
-            "Finverse routes your monthly surplus through a **3-Tier Priority Waterfall**:\n"
-            "1. **Priority #1**: Pay off toxic high-APR debt (>18% APR).\n"
-            "2. **Priority #2**: Build 6-month Emergency Shield buffer.\n"
-            "3. **Priority #3**: Invest into your 6-Asset Portfolio SIP!"
+            "**Monthly Surplus** = `Income - Expenses`.\n"
+            "Finverse routes surplus: #1 Pay Toxic Debt -> #2 Build Emergency Shield -> #3 6-Asset Portfolio."
         )
-        actions.append({"label": "View Dashboard Waterfall", "path": "/dashboard"})
-        actions.append({"label": "Explore Portfolios", "path": "/portfolios"})
+        actions.append({"label": "View Waterfall", "path": "/dashboard"})
 
-    # 14. CIBIL, Credit Score, CIBIL Band & Credit History
-    elif any(k in raw_msg or k in clean_msg for k in ["cibil", "credit score", "cibil band", "credit report"]):
+    # CIBIL Score
+    elif any(k in raw_msg or k in clean_msg for k in ["cibil", "credit score"]):
         reply = (
-            "**CIBIL Score (300-900)** measures your credit health in India:\n\n"
-            "• **750+ Excellent**: Unlocks lowest interest rates on future home & car loans.\n"
-            "• **Sub-650 (Poor)**: Triggers higher interest rates or loan rejections.\n"
-            "• **How to Improve**: Pay 100% of bill statements on time and keep credit card utilization below 30%."
+            "**CIBIL Score (300-900)**: 750+ unlocks lowest loan interest rates. Keep card utilization under 30% to boost your score."
         )
         actions.append({"label": "Check CIBIL Payoff Nudges", "path": "/debt"})
 
-    # 15. SWP (Systematic Withdrawal Plan)
-    elif any(k in raw_msg or k in clean_msg for k in ["swp", "systematic withdrawal"]):
+    # SIP & Step-Up SIP
+    elif any(k in raw_msg or k in clean_msg for k in ["sip", "systematic investment", "step-up", "step up"]):
         reply = (
-            "**Systematic Withdrawal Plan (SWP)** allows fixed monthly withdrawals from mutual fund investments at regular intervals:\n\n"
-            "• **Key Benefit**: Provides regular passive income during retirement while remaining capital continues compounding.\n"
-            "• **Tax Efficiency**: Only the capital gains portion is taxed, making it far more tax-efficient than FD interest."
-        )
-        actions.append({"label": "Open Return Calculators", "path": "/calculator"})
-
-    # 16. SIP, Step-Up SIP, Lumpsum & Compounding
-    elif any(k in raw_msg or k in clean_msg for k in ["sip", "systematic investment", "step-up", "step up", "lumpsum", "inflation"]):
-        reply = (
-            "A **Systematic Investment Plan (SIP)** automates monthly mutual fund investments:\n\n"
-            "• **Step-Up SIP**: Increasing your monthly SIP by 10% annually dramatically accelerates wealth compounding.\n"
-            "• **Rupee Cost Averaging**: Buys more fund units when prices drop, eliminating market timing stress."
+            "**Systematic Investment Plan (SIP)** automates monthly investing. "
+            "Increasing your SIP by 10% annually (**Step-Up SIP**) can double your final 20-year wealth!"
         )
         actions.append({"label": "Open SIP Calculator", "path": "/calculator"})
 
-    # 17. Onboarding & Editing Profile Parameters
-    elif any(k in raw_msg or k in clean_msg for k in ["onboarding", "edit profile", "change salary", "change expenses", "update parameters"]):
-        reply = (
-            "To update your salary, expenses, age, or savings: click **'Edit Profile Parameters'** at the top of the **Onboarding** page. Your Dashboard and Portfolio roadmaps will dynamically recalculate!"
-        )
-        actions.append({"label": "Edit Profile Parameters", "path": "/onboarding"})
-
-    # 18. Dashboard & 1-Year Dated Roadmap
-    elif any(k in raw_msg or k in clean_msg for k in ["roadmap", "1-year roadmap", "milestone", "check-in", "checkin", "30-day"]):
-        reply = (
-            "The **1-Year Dated Financial Execution Roadmap** on your Dashboard sets step-by-step milestones (starting 1st September 2026) prioritized by your real cash flow mathematics!"
-        )
-        actions.append({"label": "View Dashboard Roadmap", "path": "/dashboard"})
-
-    # 19. Dynamic Comprehensive Glossary Fallback
+    # Dynamic Comprehensive Glossary Fallback
     else:
         matched_term = None
         matched_def = None
 
-        # Try exact key or substring match in glossary_dict
         for term, definition in glossary_dict.items():
             t_lower = term.lower()
             if t_lower == clean_msg or t_lower in raw_msg or clean_msg in t_lower or t_lower in clean_msg:
@@ -773,37 +787,13 @@ def shelly_chat_endpoint(req: ShellyChatRequest):
                 matched_def = definition
                 break
 
-        # Fallback word-level match if phrase match didn't trigger
-        if not matched_term:
-            msg_words = set(clean_msg.split())
-            for term, definition in glossary_dict.items():
-                t_words = set(term.lower().split())
-                if len(t_words) > 1 and t_words.issubset(msg_words):
-                    matched_term = term
-                    matched_def = definition
-                    break
-
         if matched_term and matched_def:
-            reply = (
-                f"**{matched_term.upper()}**:\n\n{matched_def}\n\n"
-                f"Ask me how this applies to your Finverse roadmap or explore our tools!"
-            )
-            # Route contextual action buttons based on term category
-            t_lower = matched_term.lower()
-            if any(w in t_lower for w in ["debt", "apr", "emi", "cibil", "avalanche", "snowball", "minimum"]):
-                actions.append({"label": "Go to Debt Portfolio", "path": "/debt"})
-            elif any(w in t_lower for w in ["card", "rewards", "cashback", "points"]):
-                actions.append({"label": "Optimize Card Rewards", "path": "/creditcard/rewards"})
-            elif any(w in t_lower for w in ["sip", "swp", "lumpsum", "cagr", "xirr", "calculator", "inflation", "goal"]):
-                actions.append({"label": "Open Return Calculators", "path": "/calculator"})
-            elif any(w in t_lower for w in ["risk", "priority", "insurance", "deficit"]):
-                actions.append({"label": "View Priority Plan", "path": "/priority"})
-            else:
-                actions.append({"label": "Explore 6-Asset Portfolios", "path": "/portfolios"})
-                actions.append({"label": "Open Return Calculators", "path": "/calculator"})
+            reply = f"**{matched_term.upper()}**:\n\n{matched_def}"
+            actions.append({"label": "Explore 6-Asset Portfolios", "path": "/portfolios"})
+            actions.append({"label": "Open Calculators", "path": "/calculator"})
         else:
             reply = (
-                "I'm Prof. Shelly! 🐢 Ask me about any financial term across Finverse — such as **Equity Allocation**, **Debt Allocation**, **Risk Capacity**, **Toxic Debt**, **Flexi-FD**, **SWP**, **Step-Up SIP**, **CIBIL Score**, **Debt Avalanche**, **Sovereign Gold Bonds**, or **Credit Card Rewards**!"
+                "I'm Prof. Shelly! 🐢 Ask me any financial question — e.g. **What is lump sum?**, **What is flexi-FD?**, **How does equity allocation work?**, or **Which credit card is best?**"
             )
             actions.append({"label": "Explore Portfolios", "path": "/portfolios"})
             actions.append({"label": "Open Calculators", "path": "/calculator"})
@@ -811,7 +801,8 @@ def shelly_chat_endpoint(req: ShellyChatRequest):
     return {
         "status": "success",
         "reply": reply,
-        "actions": actions
+        "actions": actions,
+        "source": "local_engine"
     }
 
 

@@ -126,7 +126,9 @@ export const RecommendationView: React.FC<RecommendationViewProps> = ({ data, on
               <span>Personalized Strategy Ready</span>
             </div>
             <h1 className="text-2xl font-black text-main tracking-tight">Your Financial Action Strategy</h1>
-            <p className="text-xs text-muted font-medium">Engine calculations completed based on your saved income, debts, and goals.</p>
+            <p className="text-xs text-muted font-medium">
+              Engine calculations completed using your financial parameters & <strong className="text-emerald-600 dark:text-emerald-400">Live Market Data Feeds</strong>.
+            </p>
           </div>
 
           <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
