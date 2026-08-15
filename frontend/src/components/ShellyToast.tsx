@@ -42,10 +42,10 @@ export const ShellyToast: React.FC = () => {
 
   return (
     <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-50 animate-bounce-in max-w-md w-full select-none p-2 sm:p-0">
-      <div className="bg-card-bg/95 dark:bg-card-bg/95 border-2 border-primary/30 dark:border-emerald-500/40 p-4 sm:p-5 rounded-2xl shadow-floating flex items-center space-x-4 relative overflow-hidden backdrop-blur-md">
+      <div className="bg-white/95 dark:bg-slate-900/95 border-2 border-slate-300 dark:border-emerald-500/40 p-4 sm:p-5 rounded-2xl shadow-2xl flex items-center space-x-4 relative overflow-hidden backdrop-blur-md">
         <button
           onClick={() => setToast(null)}
-          className="absolute top-2.5 right-2.5 p-1 text-muted hover:text-main rounded-full hover:bg-surface transition-colors"
+          className="absolute top-2.5 right-2.5 p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           title="Dismiss Message"
         >
           <X className="w-4 h-4" />
@@ -56,11 +56,11 @@ export const ShellyToast: React.FC = () => {
         </div>
 
         <div className="flex-1 space-y-1 pr-3">
-          <div className="flex items-center space-x-1.5 text-primary dark:text-emerald-400 text-xs font-black uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5" />
+          <div className="flex items-center space-x-1.5 text-emerald-850 dark:text-emerald-300 text-xs font-black uppercase tracking-wider">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 fill-emerald-400" />
             <span>{toast.title || 'Prof. Shelly'}</span>
           </div>
-          <p className="text-sm font-semibold text-main leading-relaxed">
+          <p className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-relaxed">
             {toast.message}
           </p>
         </div>

@@ -41,36 +41,36 @@ export const FloatingShellyBadge: React.FC<FloatingShellyBadgeProps> = ({
       <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end">
         {/* Quick Speech Bubble Popup */}
         {isBubbleOpen && !isChatOpen && (
-          <div className="bg-card-bg/95 shadow-floating rounded-2xl border border-primary/20 dark:border-emerald-500/30 p-4 sm:p-5 max-w-xs sm:max-w-sm mb-3 animate-fadeIn text-sm space-y-3 relative backdrop-blur-md">
+          <div className="bg-white/95 dark:bg-slate-900/95 shadow-2xl rounded-2xl border border-slate-300 dark:border-emerald-500/40 p-4 sm:p-5 max-w-xs sm:max-w-sm mb-3 animate-fadeIn text-sm space-y-3 relative backdrop-blur-md">
             <button
               onClick={() => setIsBubbleOpen(false)}
-              className="absolute top-2 right-2 text-muted hover:text-main p-1 rounded-full hover:bg-surface"
+              className="absolute top-2 right-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
 
-            <div className="flex items-center space-x-1.5 text-primary dark:text-emerald-400 font-extrabold uppercase text-xs">
-              <Sparkles className="w-4 h-4" />
+            <div className="flex items-center space-x-1.5 text-emerald-800 dark:text-emerald-300 font-black uppercase text-xs">
+              <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 fill-emerald-400" />
               <span>Prof. Shelly's Wisdom</span>
             </div>
 
             <p
               onClick={handleNextQuote}
               title="Click to read another tip"
-              className="text-main dark:text-slate-100 font-semibold leading-relaxed bg-surface p-3 rounded-xl border border-black/5 dark:border-white/5 cursor-pointer hover:bg-primary/5 transition-colors text-xs sm:text-sm"
+              className="text-slate-900 dark:text-slate-100 font-bold leading-relaxed bg-slate-100 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/60 transition-colors text-xs sm:text-sm"
             >
               "{ShellyQuotes[quoteIndex]}"
             </p>
 
-            <div className="flex justify-between items-center pt-2 border-t border-black/5 dark:border-white/5">
+            <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-800">
               <button
                 onClick={() => {
                   setIsBubbleOpen(false);
                   setIsChatOpen(true);
                 }}
-                className="text-xs font-bold text-primary dark:text-emerald-400 hover:underline flex items-center space-x-1"
+                className="text-xs font-black text-emerald-800 dark:text-emerald-300 hover:underline flex items-center space-x-1"
               >
-                <Bot className="w-4 h-4" />
+                <Bot className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>Ask Question</span>
               </button>
 
@@ -79,7 +79,7 @@ export const FloatingShellyBadge: React.FC<FloatingShellyBadgeProps> = ({
                   setIsBubbleOpen(false);
                   onOpenTour();
                 }}
-                className="bg-primary text-white font-extrabold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 shadow-xs hover:bg-primary-hover transition-colors"
+                className="bg-emerald-700 dark:bg-emerald-600 text-white font-extrabold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 shadow-xs hover:bg-emerald-800 transition-colors"
               >
                 <HelpCircle className="w-4 h-4" />
                 <span>Take Tour</span>
