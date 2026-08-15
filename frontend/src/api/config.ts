@@ -1,6 +1,7 @@
 export const getApiBaseUrl = (): string => {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
+    return envUrl.trim().replace(/\/+$/, '');
   }
   // In production (e.g. Vercel deployment), default to relative URL instead of http://localhost:8000
   // to prevent browser Private Network Access (PNA) local network permission prompts on user devices.
