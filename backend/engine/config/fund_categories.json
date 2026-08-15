@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-08-12",
+  "categories": [
+    { "id": "flexi_cap", "label": "Flexi Cap Fund", "asset_class": "Equity", "risk_level": "High" },
+    { "id": "large_mid", "label": "Large & Mid Cap Fund", "asset_class": "Equity", "risk_level": "High" },
+    { "id": "index_nifty50", "label": "Nifty 50 Index Fund", "asset_class": "Equity", "risk_level": "Moderate-High" },
+    { "id": "short_duration", "label": "Short Duration Debt Fund", "asset_class": "Debt", "risk_level": "Low" },
+    { "id": "liquid", "label": "Liquid Debt Fund", "asset_class": "Debt", "risk_level": "Very Low" }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-08-12",
+  "defaults": {
+    "general_cpi": 0.06,
+    "education_inflation": 0.10,
+    "healthcare_inflation": 0.08,
+    "lifestyle_inflation": 0.07
+  }
+}

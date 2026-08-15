@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Manrope', system-ui, -apple-system, sans-serif;
+  
+  --color-surface: #F6F7F3;
+  --color-card-bg: #FFFFFF;
+  --color-primary: #3E7C59;
+  --color-data-accent: #6C5CE7;
+  --color-warning: #E4572E;
+  --color-success: #2FA76B;
+  --color-main: #1F2420;
+  --color-muted: #5B655C;
+
+  --shadow-card: 0 2px 12px rgba(20, 30, 25, 0.06);
+
+  --radius-card-sm: 20px;
+  --radius-card: 22px;
+  --radius-card-lg: 24px;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-surface);
+    color: var(--color-main);
+    font-family: var(--font-sans);
+  }
+
+  /* Force tabular numbers across all numeric content */
+  .tabular-nums, num, input[type="number"] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Remove native number input spin buttons / toggle arrows across browser engines */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}

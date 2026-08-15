@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-08-12",
+  "bands": [
+    { "name": "Excellent", "min_score": 775, "max_score": 900, "status": "prime" },
+    { "name": "Good", "min_score": 725, "max_score": 774, "status": "near_prime" },
+    { "name": "Fair", "min_score": 675, "max_score": 724, "status": "subprime" },
+    { "name": "Needs Work", "min_score": 300, "max_score": 674, "status": "poor" }
+  ]
+}

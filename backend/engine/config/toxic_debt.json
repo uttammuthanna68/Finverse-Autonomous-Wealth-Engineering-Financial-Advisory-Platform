@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-08-12",
+  "thresholds": {
+    "toxic_apr_threshold": 0.14,
+    "high_risk_apr_threshold": 0.24,
+    "predatory_apr_threshold": 0.36
+  }
+}

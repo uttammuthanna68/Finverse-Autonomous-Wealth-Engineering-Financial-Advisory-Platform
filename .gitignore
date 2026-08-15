@@ -1,0 +1,33 @@
+# Byte-compiled / Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environments
+.env
+.env.local
+.venv
+env/
+venv/
+ENV/
+
+# Database & SQLite
+*.db
+*.sqlite3
+
+# Node.js & Frontend Build
+node_modules/
+dist/
+build/
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# System & OS
+.DS_Store
+Thumbs.db

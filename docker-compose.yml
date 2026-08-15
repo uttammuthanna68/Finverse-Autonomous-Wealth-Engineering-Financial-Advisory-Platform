@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  finverse-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: finverse-app
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - JWT_SECRET_KEY=finverse-production-super-secret-jwt-signing-key-2026
+      - FERNET_ENCRYPTION_KEY=D7V7vD9yT8u_z0Z9vF5g9b3H8j7K6m5N4P3Q2R1S0tU=
+      - DATABASE_URL=sqlite:///./finverse.db
+      - ENVIRONMENT=production
+    volumes:
+      - finverse_data:/app/backend/data
+    restart: unless-stopped
+
+volumes:
+  finverse_data:

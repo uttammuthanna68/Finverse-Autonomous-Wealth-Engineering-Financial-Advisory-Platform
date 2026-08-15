@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: finverse-advisor
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: free
+    region: singapore
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: FERNET_ENCRYPTION_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: sqlite:///./finverse.db
+      - key: ENVIRONMENT
+        value: production
+    healthCheckPath: /api/engine/glossary

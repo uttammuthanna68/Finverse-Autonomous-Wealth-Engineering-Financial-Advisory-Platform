@@ -1,0 +1,2 @@
+// Dashboard module placeholder
+export {};
