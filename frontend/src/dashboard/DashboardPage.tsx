@@ -31,6 +31,9 @@ import {
   Clock,
   X,
   Check,
+  Compass,
+  Calendar,
+  Sparkles,
 } from 'lucide-react';
 
 import { useAuth } from '../auth/AuthContext';
@@ -160,6 +163,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const [isEmergencyAdjustOpen, setIsEmergencyAdjustOpen] = useState<boolean>(false);
   const [isStepUpModalOpen, setIsStepUpModalOpen] = useState<boolean>(false);
   const [isPrintableModalOpen, setIsPrintableModalOpen] = useState<boolean>(false);
+  const [roadmapTab, setRoadmapTab] = useState<'monthly' | 'phases'>('monthly');
   const [stepUpRate, setStepUpRate] = useState<number>(() => {
     const saved = localStorage.getItem('finverse_annual_stepup_rate');
     return saved ? parseFloat(saved) || 10 : 10;
@@ -500,6 +504,285 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           </div>
         </div>
       </div>
+
+      {/* Financial Execution Roadmap & Action Plan */}
+      <Card className="p-6 bg-card-bg shadow-card rounded-card border border-black/5 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-black/5 pb-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300/40">
+              <Compass className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <h2 className="text-lg font-black text-main tracking-tight">Financial Execution Roadmap & Action Plan</h2>
+                <span className="bg-primary/10 text-primary text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase border border-primary/20">
+                  Step-by-Step Strategy
+                </span>
+              </div>
+              <p className="text-xs text-muted font-medium mt-0.5">
+                Monthly remaining surplus (Salary - Expenses: ₹{monthlySurplus.toLocaleString('en-IN')}) allocation timeline across Emergency Reserve, Investments, and Debt Payoff.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-1.5 bg-surface p-1 rounded-xl border border-black/5 self-start sm:self-auto">
+            <button
+              onClick={() => setRoadmapTab('monthly')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
+                roadmapTab === 'monthly'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-muted hover:text-main hover:bg-black/5'
+              }`}
+            >
+              Month-by-Month Split
+            </button>
+            <button
+              onClick={() => setRoadmapTab('phases')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
+                roadmapTab === 'phases'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-muted hover:text-main hover:bg-black/5'
+              }`}
+            >
+              Phase Milestones
+            </button>
+          </div>
+        </div>
+
+        {roadmapTab === 'monthly' ? (
+          <div className="space-y-4">
+            <div className="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+              <div className="flex items-center space-x-2.5 text-emerald-900 dark:text-emerald-200">
+                <Sparkles className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                <div>
+                  <span className="font-extrabold block">Monthly Surplus Breakdown (₹{monthlySurplus.toLocaleString('en-IN')}/mo)</span>
+                  <span className="text-muted text-[11px]">
+                    Allocating ₹{monthlyPortfolioSip.toLocaleString('en-IN')} to Investments, ₹{monthlyEmergencyDeposit.toLocaleString('en-IN')} to Emergency Shield, and ₹{monthlyDebtPayment.toLocaleString('en-IN')} to Debt Payoff.
+                  </span>
+                </div>
+              </div>
+              <span className="text-[10px] bg-emerald-200 dark:bg-emerald-900 text-emerald-950 dark:text-emerald-100 font-mono font-bold px-2.5 py-1 rounded-lg border border-emerald-300 dark:border-emerald-700 whitespace-nowrap">
+                Sep 2026 – Dec 2026 Phase
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+              {/* Node 1: September 2026 */}
+              <div className="bg-surface p-4 rounded-2xl border-2 border-emerald-500/60 dark:border-emerald-500/80 space-y-2.5 relative shadow-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-300">
+                    Active Execution Month
+                  </span>
+                  <Calendar className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="font-mono font-black text-sm text-main">September 2026</div>
+
+                <div className="space-y-1.5 pt-1 border-t border-black/5 dark:border-white/5">
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-muted font-medium">Wealth Investments:</span>
+                    <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">₹{monthlyPortfolioSip.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-muted font-medium">Emergency Reserve:</span>
+                    <span className="font-mono font-bold text-primary">₹{monthlyEmergencyDeposit.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-muted font-medium">Debt Payoff:</span>
+                    <span className="font-mono font-bold text-warning">₹{monthlyDebtPayment.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-muted leading-tight pt-1">
+                  Automate ₹{monthlyPortfolioSip.toLocaleString('en-IN')} SIP on salary day. Deposit ₹{monthlyEmergencyDeposit.toLocaleString('en-IN')} into liquid FD.
+                </p>
+              </div>
+
+              {/* Node 2: October 2026 */}
+              <div className="bg-surface p-4 rounded-2xl border border-black/5 space-y-2.5 relative">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold uppercase text-muted bg-card-bg px-2 py-0.5 rounded-full border border-black/5">
+                    Planned Step
+                  </span>
+                  <Calendar className="w-4 h-4 text-muted" />
+                </div>
+                <div className="font-mono font-black text-sm text-main">October 2026</div>
+
+                <div className="space-y-1.5 pt-1 border-t border-black/5 dark:border-white/5">
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-muted font-medium">Wealth Investments:</span>
+                    <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">₹{monthlyPortfolioSip.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-muted font-medium">Emergency Reserve:</span>
+                    <span className="font-mono font-bold text-primary">₹{monthlyEmergencyDeposit.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-muted font-medium">Debt Payoff:</span>
+                    <span className="font-mono font-bold text-warning">₹{monthlyDebtPayment.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-muted leading-tight pt-1">
+                  Cumulative Reserve hits ₹{(savings + monthlyEmergencyDeposit * 2).toLocaleString('en-IN')}. Credit card debt reduced by ₹{(monthlyDebtPayment * 2).toLocaleString('en-IN')}.
+                </p>
+              </div>
+
+              {/* Node 3: November 2026 */}
+              <div className="bg-surface p-4 rounded-2xl border border-black/5 space-y-2.5 relative">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold uppercase text-muted bg-card-bg px-2 py-0.5 rounded-full border border-black/5">
+                    Planned Step
+                  </span>
+                  <Calendar className="w-4 h-4 text-muted" />
+                </div>
+                <div className="font-mono font-black text-sm text-main">November 2026</div>
+
+                <div className="space-y-1.5 pt-1 border-t border-black/5 dark:border-white/5">
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-muted font-medium">Wealth Investments:</span>
+                    <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">₹{monthlyPortfolioSip.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-muted font-medium">Emergency Reserve:</span>
+                    <span className="font-mono font-bold text-primary">₹{monthlyEmergencyDeposit.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-muted font-medium">Debt Payoff:</span>
+                    <span className="font-mono font-bold text-warning">₹{monthlyDebtPayment.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-muted leading-tight pt-1">
+                  Mid-quarter portfolio checkin. Verify Tax 80C & NPS allocation before year end.
+                </p>
+              </div>
+
+              {/* Node 4: December 2026 */}
+              <div className="bg-surface p-4 rounded-2xl border border-black/5 space-y-2.5 relative">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-300">
+                    Year-End Target
+                  </span>
+                  <Calendar className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="font-mono font-black text-sm text-main">December 2026</div>
+
+                <div className="space-y-1.5 pt-1 border-t border-black/5 dark:border-white/5">
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-muted font-medium">Wealth Investments:</span>
+                    <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">₹{monthlyPortfolioSip.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-muted font-medium">Emergency Reserve:</span>
+                    <span className="font-mono font-bold text-primary">₹{monthlyEmergencyDeposit.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-muted font-medium">Debt Payoff:</span>
+                    <span className="font-mono font-bold text-warning">₹{monthlyDebtPayment.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-muted leading-tight pt-1">
+                  Year-end milestone hit! Total liquid buffer reaches ₹{(savings + monthlyEmergencyDeposit * 4).toLocaleString('en-IN')}.
+                </p>
+              </div>
+            </div>
+
+            {/* Next Horizon: January 2027 Onward Banner */}
+            <div className="bg-gradient-to-r from-emerald-900 to-slate-900 text-white p-5 rounded-2xl shadow-md border border-emerald-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2">
+                  <span className="bg-emerald-500 text-slate-950 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
+                    January 2027 Onward Horizon
+                  </span>
+                  <span className="text-emerald-400 text-xs font-bold font-mono">Phase 2 Transition</span>
+                </div>
+                <h4 className="text-base font-black text-white">Full Surplus Redirection & Step-Up Compounding</h4>
+                <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                  As debt is cleared and your 6-month emergency shield is secured, your full monthly surplus of <strong className="text-emerald-300 font-mono">₹{monthlySurplus.toLocaleString('en-IN')}/mo</strong> shifts 100% into High-Growth Equity SIPs + {stepUpRate}% annual step-up compounding.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setIsStepUpModalOpen(true)}
+                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-4 py-2.5 rounded-xl text-xs flex items-center space-x-1.5 whitespace-nowrap shadow-md transition-colors"
+              >
+                <Zap className="w-4 h-4 fill-slate-950" />
+                <span>Configure Step-Up Plan</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Multi-Phase Strategy View */
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs">
+            {/* Phase 1 */}
+            <div className="bg-surface p-5 rounded-2xl border-2 border-emerald-500/40 space-y-3">
+              <div className="flex justify-between items-center border-b border-black/5 pb-2">
+                <span className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Phase 1 (Sep – Dec 2026)</span>
+                <span className="bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full">Active</span>
+              </div>
+              <h3 className="font-extrabold text-sm text-main">Foundation & Debt / Reserve Allocation</h3>
+              <p className="text-muted leading-relaxed">
+                Split monthly remaining surplus (₹{monthlySurplus.toLocaleString('en-IN')}) into ₹{monthlyPortfolioSip.toLocaleString('en-IN')} investments, ₹{monthlyEmergencyDeposit.toLocaleString('en-IN')} liquid reserve, and ₹{monthlyDebtPayment.toLocaleString('en-IN')} accelerated debt payoff.
+              </p>
+              <ul className="space-y-1.5 text-muted font-medium pt-1">
+                <li className="flex items-center space-x-1.5 text-main font-semibold">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>Build ₹{(savings + monthlyEmergencyDeposit * 4).toLocaleString('en-IN')} liquid safety net</span>
+                </li>
+                <li className="flex items-center space-x-1.5 text-main font-semibold">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>Slash credit card balances with ₹{monthlyDebtPayment.toLocaleString('en-IN')}/mo focus</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Phase 2 */}
+            <div className="bg-surface p-5 rounded-2xl border border-black/5 space-y-3">
+              <div className="flex justify-between items-center border-b border-black/5 pb-2">
+                <span className="text-xs font-black text-main uppercase tracking-wider">Phase 2 (Jan – Jun 2027)</span>
+                <span className="bg-card-bg text-muted text-[10px] font-bold px-2 py-0.5 rounded-full border border-black/5">Next</span>
+              </div>
+              <h3 className="font-extrabold text-sm text-main">Debt Clearance & Full Reserve Lock</h3>
+              <p className="text-muted leading-relaxed">
+                Complete total debt payoff and lock full {emergencyTargetMonths}-month living expense emergency target (₹{emergencyTargetAmount.toLocaleString('en-IN')}).
+              </p>
+              <ul className="space-y-1.5 text-muted font-medium pt-1">
+                <li className="flex items-center space-x-1.5">
+                  <ArrowRight className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                  <span>100% Debt Free status achieved</span>
+                </li>
+                <li className="flex items-center space-x-1.5">
+                  <ArrowRight className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                  <span>Emergency shield fully funded</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Phase 3 */}
+            <div className="bg-surface p-5 rounded-2xl border border-black/5 space-y-3">
+              <div className="flex justify-between items-center border-b border-black/5 pb-2">
+                <span className="text-xs font-black text-main uppercase tracking-wider">Phase 3 (Jul 2027 Onward)</span>
+                <span className="bg-card-bg text-muted text-[10px] font-bold px-2 py-0.5 rounded-full border border-black/5">Wealth Era</span>
+              </div>
+              <h3 className="font-extrabold text-sm text-main">100% Wealth Compounding & Step-Up</h3>
+              <p className="text-muted leading-relaxed">
+                Direct entire ₹{monthlySurplus.toLocaleString('en-IN')}/mo surplus into high-growth Index Funds, Flexi-Cap, and Gold SIPs with annual {stepUpRate}% step-up.
+              </p>
+              <ul className="space-y-1.5 text-muted font-medium pt-1">
+                <li className="flex items-center space-x-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                  <span>Exponential wealth compounding</span>
+                </li>
+                <li className="flex items-center space-x-1.5">
+                  <Zap className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                  <span>Annual {stepUpRate}% step-up active</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        )}
+      </Card>
 
       {/* Main 4-Card Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

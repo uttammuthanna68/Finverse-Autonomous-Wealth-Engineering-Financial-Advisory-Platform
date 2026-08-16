@@ -107,7 +107,7 @@ function MainApp() {
   };
 
   return (
-    <div className="min-h-screen bg-surface text-main font-sans flex relative transition-colors duration-300">
+    <div className="min-h-screen bg-surface text-main font-sans flex relative transition-colors duration-300 overflow-x-hidden w-full max-w-full">
       {/* Persistent Dark/Light Mode Toggle on top right for ALL pages */}
       <ThemeToggle />
 
@@ -118,8 +118,8 @@ function MainApp() {
           onOpenTour={() => setIsTourOpen(true)}
         />
       )}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 overflow-y-auto w-full flex flex-col items-center">
-        <div className="w-full max-w-7xl mx-auto">
+      <main className="flex-1 p-3.5 sm:p-6 lg:p-8 pb-28 md:pb-8 overflow-y-auto overflow-x-hidden w-full max-w-full flex flex-col items-center">
+        <div className="w-full max-w-7xl mx-auto overflow-x-hidden px-1">
           {renderContent()}
         </div>
       </main>
