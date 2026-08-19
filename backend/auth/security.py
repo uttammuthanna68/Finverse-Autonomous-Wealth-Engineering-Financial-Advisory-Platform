@@ -6,7 +6,7 @@ from typing import Optional, Dict, Any
 
 SECRET_KEY = os.getenv("JWT_SECRET") or os.getenv("JWT_SECRET_KEY") or "compound_secret_key_change_in_production_2026"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_DAYS = 7
+ACCESS_TOKEN_EXPIRE_HOURS = 24
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256", "bcrypt"], deprecated="auto")
 
@@ -20,13 +20,13 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
-    """Create a signed JWT access token."""
+    """Create a signed JWT access token with 24-hour expiration."""
     to_encode = data.copy()
     now = datetime.now(timezone.utc)
     if expires_delta:
         expire = now + expires_delta
     else:
-        expire = now + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
+        expire = now + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
     
     to_encode.update({"exp": int(expire.timestamp()), "iat": int(now.timestamp())})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -37,5 +37,5 @@ def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
-    except Exception:
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, Exception):
         return None

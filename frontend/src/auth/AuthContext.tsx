@@ -16,19 +16,25 @@ interface AuthContextType {
   isAuthenticated: boolean;
   hasCompletedOnboarding: boolean;
   isLoading: boolean;
+  sessionNotice: string | null;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, fullName?: string) => Promise<void>;
-  logout: () => void;
+  logout: (notice?: string) => void;
   refetchUser: () => Promise<void>;
+  clearSessionNotice: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const MAX_SESSION_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours max session
+const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000; // 30 mins idle logout
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [sessionNotice, setSessionNotice] = useState<string | null>(localStorage.getItem('auth_notice'));
 
   const safeJson = async (res: Response): Promise<any> => {
     try {
@@ -39,14 +45,54 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const clearSessionNotice = () => {
+    localStorage.removeItem('auth_notice');
+    setSessionNotice(null);
+  };
+
+  const logout = (notice?: string) => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('session_start_time');
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('onboarding_')) {
+        localStorage.removeItem(key);
+      }
+    });
+
+    if (notice) {
+      localStorage.setItem('auth_notice', notice);
+      setSessionNotice(notice);
+    } else {
+      localStorage.removeItem('auth_notice');
+      setSessionNotice(null);
+    }
+
+    setToken(null);
+    setUser(null);
+    setHasCompletedOnboarding(false);
+  };
+
   const refetchUser = async () => {
     const storedToken = localStorage.getItem('token');
+    const sessionStartTime = localStorage.getItem('session_start_time');
+
     if (!storedToken) {
       setUser(null);
       setToken(null);
       setHasCompletedOnboarding(false);
       setIsLoading(false);
       return;
+    }
+
+    // Check if session has exceeded 24 hours
+    if (sessionStartTime) {
+      const sessionAge = Date.now() - Number(sessionStartTime);
+      if (sessionAge > MAX_SESSION_DURATION_MS) {
+        console.warn('Session expired (exceeded 24 hours)');
+        logout('Your session has expired after 24 hours for financial security. Please log in again.');
+        setIsLoading(false);
+        return;
+      }
     }
 
     try {
@@ -64,10 +110,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setHasCompletedOnboarding(false);
         }
       } else {
-        localStorage.removeItem('token');
-        setUser(null);
-        setToken(null);
-        setHasCompletedOnboarding(false);
+        // Backend returned 401 Unauthorized or invalid token
+        logout('Session expired or invalid token. Please log in again.');
       }
     } catch (err) {
       console.error('Failed to restore session:', err);
@@ -81,6 +125,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     refetchUser();
   }, []);
+
+  // Idle / Inactivity Auto-Logout Effect (30 minutes)
+  useEffect(() => {
+    if (!token || !user) return;
+
+    let timer: NodeJS.Timeout;
+
+    const resetTimer = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        console.warn('User inactive for 30 minutes. Logging out.');
+        logout('You have been logged out due to 30 minutes of inactivity to protect your financial data.');
+      }, INACTIVITY_TIMEOUT_MS);
+    };
+
+    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
+    activityEvents.forEach((evt) => window.addEventListener(evt, resetTimer));
+
+    resetTimer();
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      activityEvents.forEach((evt) => window.removeEventListener(evt, resetTimer));
+    };
+  }, [token, user]);
 
   const parseErrorMessage = (detail: any, fallback: string): string => {
     if (!detail) return fallback;
@@ -119,6 +188,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       localStorage.setItem('token', data.token);
+      localStorage.setItem('session_start_time', Date.now().toString());
+      localStorage.removeItem('auth_notice');
+      setSessionNotice(null);
       setToken(data.token);
       setUser(data.user);
       await refetchUser();
@@ -149,6 +221,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       localStorage.setItem('token', data.token);
+      localStorage.setItem('session_start_time', Date.now().toString());
+      localStorage.removeItem('auth_notice');
+      setSessionNotice(null);
       setToken(data.token);
       setUser(data.user);
       await refetchUser();
@@ -160,19 +235,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    // Clean up local onboarding storage
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('onboarding_')) {
-        localStorage.removeItem(key);
-      }
-    });
-    setToken(null);
-    setUser(null);
-    setHasCompletedOnboarding(false);
-  };
-
   return (
     <AuthContext.Provider
       value={{
@@ -181,10 +243,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isAuthenticated: !!user,
         hasCompletedOnboarding,
         isLoading,
+        sessionNotice,
         login,
         signup,
         logout,
         refetchUser,
+        clearSessionNotice,
       }}
     >
       {children}

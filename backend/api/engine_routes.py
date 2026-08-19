@@ -827,6 +827,7 @@ class TaxAnalysisRequest(BaseModel):
     sec_80d: Optional[float] = 25000.0
     sec_80ccd_1b: Optional[float] = 50000.0
     sec_24b: Optional[float] = 0.0
+    financial_year: Optional[str] = "FY 2025-26"
 
 @router.post("/tax-analysis")
 def get_tax_analysis(request: TaxAnalysisRequest):
@@ -836,7 +837,8 @@ def get_tax_analysis(request: TaxAnalysisRequest):
             sec_80c=request.sec_80c or 0.0,
             sec_80d=request.sec_80d or 0.0,
             sec_80ccd_1b=request.sec_80ccd_1b or 0.0,
-            sec_24b=request.sec_24b or 0.0
+            sec_24b=request.sec_24b or 0.0,
+            financial_year=request.financial_year or "FY 2025-26"
         )
         return res
     except Exception as e:

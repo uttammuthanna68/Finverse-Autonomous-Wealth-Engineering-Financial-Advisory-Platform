@@ -8,7 +8,7 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
-  const { login } = useAuth();
+  const { login, sessionNotice, clearSessionNotice } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -17,6 +17,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    clearSessionNotice();
 
     if (!email.trim() || !password.trim()) {
       setError('Please enter both email address and password.');
@@ -62,6 +63,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
           <h1 className="text-2xl font-extrabold text-main tracking-tight">Welcome Back</h1>
           <p className="text-sm text-muted font-medium">Log in to manage your financial profile and advisors.</p>
         </div>
+
+        {/* Security Session Expiry Banner */}
+        {sessionNotice && !error && (
+          <div className="flex items-start space-x-3 bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 p-4 rounded-xl text-xs font-semibold animate-fadeIn">
+            <Lock className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="flex-1">{sessionNotice}</div>
+          </div>
+        )}
 
         {/* Inline Validation / API Error Banner */}
         {error && (
